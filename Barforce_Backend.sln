@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.29403.142
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Barforce_Backend", "Barforce_Backend\Barforce_Backend.csproj", "{3A7E5647-97B0-497B-8A59-7D6F03CAE06F}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{3A7E5647-97B0-497B-8A59-7D6F03CAE06F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3A7E5647-97B0-497B-8A59-7D6F03CAE06F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3A7E5647-97B0-497B-8A59-7D6F03CAE06F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3A7E5647-97B0-497B-8A59-7D6F03CAE06F}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {E72083E4-9225-48AF-BE5F-347E66BE8B0C}
+	EndGlobalSection
+EndGlobal
