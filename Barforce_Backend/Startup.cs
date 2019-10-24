@@ -32,7 +32,7 @@ namespace Barforce_Backend
         {
             services.Configure<DbSettings>(Configuration.GetSection("DbSettings"));
 
-            services.AddControllers();
+            services.AddSingleton<IDbHelper, DbHelper>();
             services.AddSingleton<IHashHelper, HashHelper>();
             services.AddControllers()
                 .AddNewtonsoftJson();
