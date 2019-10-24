@@ -11,7 +11,7 @@ CREATE VIEW viUser AS
         verified,
         currenttoken
     FROM
-         "User"
+         "user"
     WHERE
         deletetime IS NULL;
 
