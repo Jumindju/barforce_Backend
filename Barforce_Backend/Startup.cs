@@ -2,8 +2,12 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Barforce_Backend.Helper;
 using Barforce_Backend.Helper.Middleware;
+using Barforce_Backend.Interface.Helper;
+using Barforce_Backend.Interface.Repositories;
 using Barforce_Backend.Model.Helper.Database;
+using Barforce_Backend.Repository;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
@@ -28,7 +32,12 @@ namespace Barforce_Backend
         {
             services.Configure<DbSettings>(Configuration.GetSection("DbSettings"));
 
-            services.AddControllers();
+            services.AddSingleton<IDbHelper, DbHelper>();
+            services.AddSingleton<IHashHelper, HashHelper>();
+            services.AddScoped<IUserRepository, UserRepository>();
+
+            services.AddControllers()
+                .AddNewtonsoftJson();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
