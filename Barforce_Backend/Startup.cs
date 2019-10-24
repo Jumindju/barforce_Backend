@@ -34,6 +34,8 @@ namespace Barforce_Backend
 
             services.AddSingleton<IDbHelper, DbHelper>();
             services.AddSingleton<IHashHelper, HashHelper>();
+            services.AddScoped<IUserRepository, UserRepository>();
+
             services.AddControllers()
                 .AddNewtonsoftJson();
         }
