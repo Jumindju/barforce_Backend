@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Barforce_Backend.Helper.Middleware;
 using Barforce_Backend.Model.Helper.Database;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -38,6 +39,7 @@ namespace Barforce_Backend
                 app.UseDeveloperExceptionPage();
             }
 
+            app.UseHttpStatusCodeExceptionMiddleware();
             app.UseRouting();
             app.UseEndpoints(endpoints =>
             {
