@@ -6,10 +6,13 @@ using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
+using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
+using Barforce_Backend.Model.Helper.Middleware;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 
 namespace Barforce_Backend.Helper
 {
@@ -17,10 +20,12 @@ namespace Barforce_Backend.Helper
     {
         private readonly DbSettings _dbSettings;
         private readonly IWebHostEnvironment _hostEnvironment;
-        public DbHelper(IOptions<DbSettings> dbSettings, IWebHostEnvironment hostEnvironment)
+        private readonly ILogger _logger;
+        public DbHelper(IOptions<DbSettings> dbSettings, IWebHostEnvironment hostEnvironment, ILoggerFactory loggerFactory)
         {
             _dbSettings = dbSettings.Value;
             _hostEnvironment = hostEnvironment;
+            _logger = loggerFactory.CreateLogger<DbHelper>();
         }
         public async Task<IDbConnection> GetConnection(CancellationToken ct = default)
         {
@@ -32,8 +37,8 @@ namespace Barforce_Backend.Helper
             }
             catch (Exception e)
             {
-                Console.WriteLine($"Error while opening db con: {e.Message}");
-                throw;
+                _logger.LogError(e,"Error while opening sql connection");
+                throw new HttpStatusCodeException(HttpStatusCode.ServiceUnavailable,"Could not open sql connection", e);
             }
         }
         private string GetConnectionString()
