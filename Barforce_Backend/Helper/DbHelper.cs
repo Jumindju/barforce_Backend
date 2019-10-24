@@ -8,21 +8,25 @@ using System.Data;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.Extensions.Hosting;
 
 namespace Barforce_Backend.Helper
 {
     public class DbHelper : IDbHelper
     {
         private readonly DbSettings _dbSettings;
-        public DbHelper(IOptions<DbSettings> dbSettings)
+        private readonly IWebHostEnvironment _hostEnvironment;
+        public DbHelper(IOptions<DbSettings> dbSettings, IWebHostEnvironment hostEnvironment)
         {
             _dbSettings = dbSettings.Value;
+            _hostEnvironment = hostEnvironment;
         }
         public async Task<IDbConnection> GetConnection(CancellationToken ct = default)
         {
             try
             {
-                using var con = new NpgsqlConnection(_dbSettings.ConnectionString);
+                var con = new NpgsqlConnection(GetConnectionString());
                 await con.OpenAsync(ct);
                 return con;
             }
@@ -31,6 +35,19 @@ namespace Barforce_Backend.Helper
                 Console.WriteLine($"Error while opening db con: {e.Message}");
                 throw;
             }
+        }
+        private string GetConnectionString()
+        {
+            return _hostEnvironment.IsDevelopment()
+                ? _dbSettings.ConnectionString
+                : PostgresUriToConString(Environment.GetEnvironmentVariable("DATABASE_URL"));
+        }
+
+        private static string PostgresUriToConString(string postgresUri)
+        {
+            var remove = postgresUri = postgresUri.Remove(0, postgresUri.IndexOf("://", StringComparison.Ordinal));
+            var conStringInformation = postgresUri.Split(new[] {':', '@', '/'}, StringSplitOptions.RemoveEmptyEntries);
+            return $"UserName={conStringInformation[0]};Password={conStringInformation[1]};Host={conStringInformation[2]};Database={conStringInformation[4]}";
         }
     }
 }
