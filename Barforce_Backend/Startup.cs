@@ -6,6 +6,7 @@ using Barforce_Backend.Helper;
 using Barforce_Backend.Helper.Middleware;
 using Barforce_Backend.Interface.Helper;
 using Barforce_Backend.Interface.Repositories;
+using Barforce_Backend.Model.Configuration;
 using Barforce_Backend.Model.Helper.Database;
 using Barforce_Backend.Repository;
 using Microsoft.AspNetCore.Builder;
@@ -35,6 +36,8 @@ namespace Barforce_Backend
 
             services.AddSingleton<IDbHelper, DbHelper>();
             services.AddSingleton<IHashHelper, HashHelper>();
+            services.AddSingleton<ITokenHelper, TokenHelper>();
+
             services.AddScoped<IUserRepository, UserRepository>();
 
             services.AddControllers()
