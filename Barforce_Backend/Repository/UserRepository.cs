@@ -53,7 +53,7 @@ namespace Barforce_Backend.Repository
             try
             {
                 using var con = await _dbHelper.GetConnection();
-                con.Execute(cmd, parameter);
+                await con.ExecuteAsync(cmd, parameter);
                 _logger.LogInformation("Created user");
             }
             catch (SqlException e)
@@ -78,7 +78,7 @@ namespace Barforce_Backend.Repository
             try
             {
                 using var con = await _dbHelper.GetConnection();
-                return con.QueryFirstOrDefault<int?>(cmd, parameter) != null;
+                return await con.QueryFirstOrDefaultAsync<int?>(cmd, parameter) != null;
             }
             catch (SqlException e)
             {
