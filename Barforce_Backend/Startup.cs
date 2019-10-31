@@ -31,6 +31,7 @@ namespace Barforce_Backend
         public void ConfigureServices(IServiceCollection services)
         {
             services.Configure<DbSettings>(Configuration.GetSection("DbSettings"));
+            services.Configure<JwtOptions>(Configuration.GetSection("JwtOptions"));
 
             services.AddSingleton<IDbHelper, DbHelper>();
             services.AddSingleton<IHashHelper, HashHelper>();
