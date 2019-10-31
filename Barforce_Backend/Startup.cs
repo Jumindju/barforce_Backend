@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 using Barforce_Backend.Helper;
 using Barforce_Backend.Helper.Middleware;
@@ -9,12 +10,14 @@ using Barforce_Backend.Interface.Repositories;
 using Barforce_Backend.Model.Configuration;
 using Barforce_Backend.Model.Helper.Database;
 using Barforce_Backend.Repository;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.IdentityModel.Tokens;
 
 namespace Barforce_Backend
 {
@@ -40,6 +43,20 @@ namespace Barforce_Backend
 
             services.AddScoped<IUserRepository, UserRepository>();
 
+            var jwtOptions = Configuration.GetSection("JwtOptions").Get<JwtOptions>();
+            var symmetricSecurityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtOptions.Secret));
+            services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+                .AddJwtBearer(options =>
+                {
+                    options.TokenValidationParameters = new TokenValidationParameters
+                    {
+                        ValidateIssuer = true,
+                        ValidateIssuerSigningKey = true,
+                        ValidIssuer = "barforce_tm",
+                        IssuerSigningKey = symmetricSecurityKey
+                    };
+                });
+
             services.AddControllers()
                 .AddNewtonsoftJson();
         }
@@ -52,12 +69,13 @@ namespace Barforce_Backend
                 app.UseDeveloperExceptionPage();
             }
 
+            app.UseAuthorization();
+            
             app.UseHttpStatusCodeExceptionMiddleware();
+            app.UseTokenValidateMiddleware();
+
             app.UseRouting();
-            app.UseEndpoints(endpoints =>
-            {
-                endpoints.MapControllers();
-            });
+            app.UseEndpoints(endpoints => { endpoints.MapControllers(); });
         }
     }
 }
