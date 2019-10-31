@@ -31,13 +31,6 @@ namespace Barforce_Backend.Repository
         {
             if (newUser == null)
                 throw new HttpStatusCodeException(HttpStatusCode.BadRequest, "No userData send");
-            var validationContext = new ValidationContext(newUser);
-            var results = new List<ValidationResult>();
-            if (!Validator.TryValidateObject(newUser, validationContext, results, true))
-            {
-                throw new HttpStatusCodeException(HttpStatusCode.BadRequest,
-                    string.Join(',', results.Select(res => res.ErrorMessage)));
-            }
 
             if (await UsernameExists(newUser.UserName))
             {
@@ -60,7 +53,7 @@ namespace Barforce_Backend.Repository
             try
             {
                 using var con = await _dbHelper.GetConnection();
-                con.Execute(cmd, parameter);
+                await con.ExecuteAsync(cmd, parameter);
                 _logger.LogInformation("Created user");
             }
             catch (SqlException e)
@@ -85,7 +78,7 @@ namespace Barforce_Backend.Repository
             try
             {
                 using var con = await _dbHelper.GetConnection();
-                return con.QueryFirstOrDefault<int?>(cmd, parameter) != null;
+                return await con.QueryFirstOrDefaultAsync<int?>(cmd, parameter) != null;
             }
             catch (SqlException e)
             {

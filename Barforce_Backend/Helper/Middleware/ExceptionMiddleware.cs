@@ -34,7 +34,7 @@ namespace Barforce_Backend.Helper.Middleware
                 }
 
 
-                await OverrideResponse(context, new MiddlewareExceptionResponse
+                await OverrideResponse(context, new ErrorResponse
                 {
                     Message = ex.Message,
                     InnerException = ex.InnerException?.Message,
@@ -53,7 +53,7 @@ namespace Barforce_Backend.Helper.Middleware
                 const string errorMessage = "Unhandled error occured";
                 _logger.LogError(ex, errorMessage);
 
-                await OverrideResponse(context, new MiddlewareExceptionResponse
+                await OverrideResponse(context, new ErrorResponse
                 {
                     Message = errorMessage,
                     InnerException = ex.Message,
@@ -62,7 +62,7 @@ namespace Barforce_Backend.Helper.Middleware
             }
         }
 
-        private async Task OverrideResponse(HttpContext context, MiddlewareExceptionResponse data, int statusCode)
+        private async Task OverrideResponse(HttpContext context, ErrorResponse data, int statusCode)
         {
             context.Response.Clear();
             context.Response.StatusCode = statusCode;

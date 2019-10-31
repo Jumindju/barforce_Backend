@@ -1,17 +1,16 @@
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
-CREATE TABLE "User"
-(
+CREATE TABLE "user"(
     UserId SERIAL PRIMARY KEY,
     UserName VARCHAR(64) NOT NULL UNIQUE,
     BirthDay timestamp without time zone NOT NULL,
     Weight INT NULL,
-    Password CHAR(128) NOT NULL,
+    Password VARCHAR(128) NOT NULL,
     Salt CHAR(16) NOT NULL,
     Groups smallint NOT NULL DEFAULT 0,
     Gender BOOLEAN NOT NULL,
-    Verified uuid NULL,
-    CurrentToken uuid NULL DEFAULT uuid_generate_v4(),
+    Verified uuid NULL DEFAULT uuid_generate_v4(),
+    CurrentToken uuid NULL,
     CreationTime timestamp default now(),
     DeleteTime timestamp NULL
 );
@@ -29,9 +28,9 @@ CREATE TABLE Drink(
     CreationTime timestamp without time zone default (now() at time zone 'utc')
 );
 
-CREATE TABLE "Order"(
+CREATE TABLE "order"(
     Id SERIAL PRIMARY KEY,
-    UserId INT REFERENCES "User"(UserId),
+    UserId INT REFERENCES "user"(UserId),
     DrinkId INT REFERENCES Drink(Id),
     OrderDate timestamp without time zone default (now() at time zone 'utc'),
     ServeTime timestamp without time zone default (now() at time zone 'utc')
