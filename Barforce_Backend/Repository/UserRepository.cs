@@ -7,10 +7,12 @@ using System.Net;
 using System.Threading.Tasks;
 using Barforce_Backend.Interface.Helper;
 using Barforce_Backend.Interface.Repositories;
+using Barforce_Backend.Model.Configuration;
 using Barforce_Backend.Model.Helper.Middleware;
 using Barforce_Backend.Model.User;
 using Dapper;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace Barforce_Backend.Repository
 {
@@ -19,12 +21,19 @@ namespace Barforce_Backend.Repository
         private readonly ILogger _logger;
         private readonly IHashHelper _hashHelper;
         private readonly IDbHelper _dbHelper;
+        private readonly ITokenHelper _tokenHelper;
 
-        public UserRepository(ILoggerFactory loggerFactory, IHashHelper hashHelper, IDbHelper dbHelper)
+        public UserRepository(
+            ILoggerFactory loggerFactory,
+            IHashHelper hashHelper,
+            IDbHelper dbHelper,
+            ITokenHelper tokenHelper
+        )
         {
             _logger = loggerFactory.CreateLogger<UserRepository>();
             _hashHelper = hashHelper;
             _dbHelper = dbHelper;
+            _tokenHelper = tokenHelper;
         }
 
         public async Task Register(UserRegister newUser)
@@ -39,7 +48,7 @@ namespace Barforce_Backend.Repository
 
             if (await EMailExists(newUser.EMail))
             {
-                throw new HttpStatusCodeException(HttpStatusCode.Conflict,"User with that email already exists");
+                throw new HttpStatusCodeException(HttpStatusCode.Conflict, "User with that email already exists");
             }
 
             var salt = await _hashHelper.CreateSalt();
@@ -69,7 +78,19 @@ namespace Barforce_Backend.Repository
             }
         }
 
-        public void Verify(Guid verifyGuid)
+        public async Task<string> Login(string userName, string password)
+        {
+            var user = await ReadUserByName(userName);
+            if (user == null)
+                throw new HttpStatusCodeException(HttpStatusCode.BadRequest, "No user found with this name");
+            if (!_hashHelper.IsCorrectPassword(password, user.Salt, user.Password))
+                throw new HttpStatusCodeException(HttpStatusCode.Forbidden, "Invalid password");
+            if (user.Verified != null)
+                throw new HttpStatusCodeException(HttpStatusCode.Conflict, "User didnt verified his email");
+
+            return await _tokenHelper.GetUserToken(user);
+        }
+
         public async Task ResetPassword(int userId, string newPassword)
         {
             var user = await ReadUserById(userId);
@@ -91,16 +112,15 @@ namespace Barforce_Backend.Repository
             }
             catch (SqlException e)
             {
-                throw new HttpStatusCodeException(HttpStatusCode.InternalServerError,"Error while resetting password");
+                throw new HttpStatusCodeException(HttpStatusCode.InternalServerError, "Error while resetting password",
+                    e);
             }
-        }
-        {
         }
 
         public async Task<bool> UsernameExists(string userName)
         {
             if (userName == null || userName.Length < 4)
-                throw new HttpStatusCodeException(HttpStatusCode.BadRequest,"Username needs at least 4 digits");
+                throw new HttpStatusCodeException(HttpStatusCode.BadRequest, "Username needs at least 4 digits");
 
             const string cmd = "SELECT userid FROM \"user\" WHERE username=:userName";
             var parameter = new DynamicParameters(new
@@ -124,7 +144,7 @@ namespace Barforce_Backend.Repository
         {
             var emailValidator = new EmailAddressAttribute();
             if (!emailValidator.IsValid(email))
-                throw new HttpStatusCodeException(HttpStatusCode.BadRequest,"Invalid email format");
+                throw new HttpStatusCodeException(HttpStatusCode.BadRequest, "Invalid email format");
 
             const string cmd = "SELECT userid FROM \"user\" WHERE email=:email";
             var parameter = new DynamicParameters(new
@@ -143,10 +163,32 @@ namespace Barforce_Backend.Repository
                 throw new HttpStatusCodeException(HttpStatusCode.InternalServerError, errMsg, e);
             }
         }
+
+
+        private async Task<UserDto> ReadUserByName(string userName)
+        {
+            const string cmd =
+                "SELECT userid,username,email,birthday,weight,groups,gender,verified,currentToken,password, salt from viuser where username=:userName";
+            var parameter = new DynamicParameters(new
+            {
+                userName
+            });
+            try
+            {
+                using var con = await _dbHelper.GetConnection();
+                return await con.QueryFirstOrDefaultAsync<UserDto>(cmd, parameter);
+            }
+            catch (SqlException e)
+            {
+                throw new HttpStatusCodeException(HttpStatusCode.InternalServerError,
+                    "Error while reading user by userName", e);
+            }
+        }
+
         private async Task<UserDto> ReadUserById(int userId)
         {
             const string cmd =
-                "SELECT userid,username,email,birthday,weight,groups,gender,verified,currentToken,password, salt from \"user\" where userid=:userId";
+                "SELECT userid,username,email,birthday,weight,groups,gender,verified,currentToken,password, salt from viuser where userid=:userId";
             var parameter = new DynamicParameters(new
             {
                 userId
@@ -159,7 +201,7 @@ namespace Barforce_Backend.Repository
             catch (SqlException e)
             {
                 throw new HttpStatusCodeException(HttpStatusCode.InternalServerError,
-                    "Error while reading user by userId");
+                    "Error while reading user by userId", e);
             }
         }
     }
