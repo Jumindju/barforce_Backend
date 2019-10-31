@@ -58,16 +58,41 @@ namespace Barforce_Backend.Helper
             var token = new JwtSecurityToken(
                 expires: DateTime.UtcNow.AddDays(_jwtOptions.ExpireDays),
                 signingCredentials: signingCredentials,
-                claims: claims
+                claims: claims,
+                issuer: "barforce_tm"
             );
             var tokenHandler = new JwtSecurityTokenHandler();
             return tokenHandler.WriteToken(token);
+        }
+
+        public UserValidation GetUserFromToken(string bearer)
+        {
+            var key = Encoding.UTF8.GetBytes(_jwtOptions.Secret);
+            var handler = new JwtSecurityTokenHandler();
+            var validations = new TokenValidationParameters
+            {
+                ValidateIssuerSigningKey = true,
+                IssuerSigningKey = new SymmetricSecurityKey(key),
+                ValidateIssuer = false,
+                ValidateAudience = false
+            };
+            var claims = handler.ValidateToken(bearer, validations, out var token);
+
+            var validationUser = new UserValidation();
+            var userIdClaim = claims.FindFirst("userId")?.Value;
+            if (int.TryParse(userIdClaim, out var userId))
+                validationUser.UserId = userId;
+            var jtiClaim = claims.FindFirst("jti")?.Value;
+            if (jtiClaim != null)
+                validationUser.CurrentToken = new Guid(jtiClaim);
+            return validationUser;
         }
 
         private static List<Claim> GetUserClaims(AuthUser user)
         {
             return new List<Claim>
             {
+                new Claim("userId", user.UserId.ToString()),
                 new Claim("userName", user.Username),
                 new Claim("eMail", user.Email),
                 new Claim("birthDay", user.Birthday.ToShortDateString()),
