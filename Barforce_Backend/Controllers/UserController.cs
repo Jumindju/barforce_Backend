@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 using System.Threading.Tasks;
 using Barforce_Backend.Interface.Repositories;
 using Barforce_Backend.Model.Helper.Middleware;
@@ -44,6 +44,18 @@ namespace Barforce_Backend.Controllers
                 });
             await _userRepository.Register(newUser);
             return StatusCode(201);
+        }
+//TODO: Secure Endpoint
+        [HttpPost("changePw")]
+        public async Task<IActionResult> ResetPassword([FromBody]ResetPassword newPw)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(new ErrorResponse
+                {
+                    Message = "Invalid new password"
+                });
+            await _userRepository.ResetPassword(1, newPw.NewPassword);
+            return Ok();
         }
     }
 }

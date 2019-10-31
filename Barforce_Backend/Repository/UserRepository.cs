@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Data.SqlClient;
@@ -70,6 +70,30 @@ namespace Barforce_Backend.Repository
         }
 
         public void Verify(Guid verifyGuid)
+        public async Task ResetPassword(int userId, string newPassword)
+        {
+            var user = await ReadUserById(userId);
+            if (user == null)
+                throw new HttpStatusCodeException(HttpStatusCode.BadRequest, "User does not exists");
+            var newSalt = await _hashHelper.CreateSalt();
+            var newHashedPw = _hashHelper.GetHash(newPassword, newSalt);
+            const string cmd = "UPDATE \"user\" SET password=:newPw, salt=:newSalt WHERE userid=:userId";
+            var parameter = new DynamicParameters(new
+            {
+                userId,
+                newPw = newHashedPw,
+                newSalt
+            });
+            try
+            {
+                using var con = await _dbHelper.GetConnection();
+                await con.ExecuteAsync(cmd, parameter);
+            }
+            catch (SqlException e)
+            {
+                throw new HttpStatusCodeException(HttpStatusCode.InternalServerError,"Error while resetting password");
+            }
+        }
         {
         }
 
@@ -117,6 +141,25 @@ namespace Barforce_Backend.Repository
                 const string errMsg = "Error while checking if email exists";
                 _logger.LogError(e, errMsg);
                 throw new HttpStatusCodeException(HttpStatusCode.InternalServerError, errMsg, e);
+            }
+        }
+        private async Task<UserDto> ReadUserById(int userId)
+        {
+            const string cmd =
+                "SELECT userid,username,email,birthday,weight,groups,gender,verified,currentToken,password, salt from \"user\" where userid=:userId";
+            var parameter = new DynamicParameters(new
+            {
+                userId
+            });
+            try
+            {
+                using var con = await _dbHelper.GetConnection();
+                return await con.QueryFirstOrDefaultAsync<UserDto>(cmd, parameter);
+            }
+            catch (SqlException e)
+            {
+                throw new HttpStatusCodeException(HttpStatusCode.InternalServerError,
+                    "Error while reading user by userId");
             }
         }
     }
