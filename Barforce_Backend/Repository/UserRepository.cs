@@ -86,7 +86,7 @@ namespace Barforce_Backend.Repository
             if (!_hashHelper.IsCorrectPassword(password, user.Salt, user.Password))
                 throw new HttpStatusCodeException(HttpStatusCode.Forbidden, "Invalid password");
             if (user.Verified != null)
-                throw new HttpStatusCodeException(HttpStatusCode.Conflict, "User didnt verified his email");
+                throw new HttpStatusCodeException(HttpStatusCode.NoContent, "User didnt verified his email");
 
             return await _tokenHelper.GetUserToken(user);
         }
