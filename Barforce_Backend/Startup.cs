@@ -36,6 +36,7 @@ namespace Barforce_Backend
         {
             services.Configure<DbSettings>(Configuration.GetSection("DbSettings"));
             services.Configure<JwtOptions>(Configuration.GetSection("JwtOptions"));
+            services.Configure<EMailOptions>(Configuration.GetSection("EmailOptions"));
 
             services.AddSingleton<IDbHelper, DbHelper>();
             services.AddSingleton<IHashHelper, HashHelper>();
@@ -70,7 +71,7 @@ namespace Barforce_Backend
             }
 
             app.UseAuthorization();
-            
+
             app.UseHttpStatusCodeExceptionMiddleware();
             app.UseTokenValidateMiddleware();
 
