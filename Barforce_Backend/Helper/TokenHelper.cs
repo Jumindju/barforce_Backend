@@ -1,11 +1,16 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Data.SqlClient;
 using System.IdentityModel.Tokens.Jwt;
+using System.Net;
 using System.Security.Claims;
 using System.Text;
+using System.Threading.Tasks;
 using Barforce_Backend.Interface.Helper;
 using Barforce_Backend.Model.Configuration;
+using Barforce_Backend.Model.Helper.Middleware;
 using Barforce_Backend.Model.User;
+using Dapper;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 
@@ -14,42 +19,60 @@ namespace Barforce_Backend.Helper
     public class TokenHelper : ITokenHelper
     {
         private readonly JwtOptions _jwtOptions;
+        private readonly IDbHelper _dbHelper;
 
-        public TokenHelper(IOptions<JwtOptions> jwtOptions)
+        public TokenHelper(IOptions<JwtOptions> jwtOptions, IDbHelper dbHelper)
         {
             _jwtOptions = jwtOptions.Value;
+            _dbHelper = dbHelper;
         }
 
-        public string GetUserToken(AuthUser user)
+        public async Task<string> GetUserToken(AuthUser user)
         {
-            var tokenHandler = new JwtSecurityTokenHandler();
-            var key = Encoding.ASCII.GetBytes(_jwtOptions.Secret);
-            var tokenDescriptor = new SecurityTokenDescriptor
+            var key = Encoding.UTF8.GetBytes(_jwtOptions.Secret);
+            var symmetricSecurityKey = new SymmetricSecurityKey(key);
+            var signingCredentials =
+                new SigningCredentials(symmetricSecurityKey, SecurityAlgorithms.HmacSha256Signature);
+
+            var jtiGuid = Guid.NewGuid();
+            const string cmd = "UPDATE \"user\" SET currenttoken=:jtiGuid WHERE userid=:userId";
+            var parameter = new DynamicParameters(new
             {
-                Subject = new ClaimsIdentity(new Claim[]
-                {
-                    new Claim(ClaimTypes.Name, user.UserId.ToString()),
-                    new Claim(ClaimTypes.Role, user.Groups.ToString())
-                }),
-                Expires = DateTime.UtcNow.AddDays(_jwtOptions.ExpireDays),
-                SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key),
-                    SecurityAlgorithms.HmacSha256Signature),
-                IssuedAt = DateTime.UtcNow,
-                AdditionalHeaderClaims = GetUserPayload(user)
-            };
-            var token = tokenHandler.CreateToken(tokenDescriptor);
+                jtiGuid,
+                user.UserId
+            });
+            try
+            {
+                using var con = await _dbHelper.GetConnection();
+                await con.ExecuteAsync(cmd, parameter);
+            }
+            catch (SqlException e)
+            {
+                throw new HttpStatusCodeException(HttpStatusCode.InternalServerError, "Error while updating token", e);
+            }
+
+            var claims = GetUserClaims(user);
+            claims.Add(new Claim("jti", jtiGuid.ToString()));
+            if ((user.Groups & UserGroups.Admin) != 0)
+                claims.Add(new Claim(ClaimTypes.Role, "Administrator"));
+            var token = new JwtSecurityToken(
+                expires: DateTime.UtcNow.AddDays(_jwtOptions.ExpireDays),
+                signingCredentials: signingCredentials,
+                claims: claims
+            );
+            var tokenHandler = new JwtSecurityTokenHandler();
             return tokenHandler.WriteToken(token);
         }
 
-        private static Dictionary<string, object> GetUserPayload(AuthUser user)
+        private static List<Claim> GetUserClaims(AuthUser user)
         {
-            return new Dictionary<string, object>
+            return new List<Claim>
             {
-                {"userName", user.Username},
-                {"eMail", user.Email},
-                {"birthDay", user.Birthday.ToShortDateString()},
-                {"weight", user.Weight},
-                {"gender", user.Gender},
+                new Claim("userName", user.Username),
+                new Claim("eMail", user.Email),
+                new Claim("birthDay", user.Birthday.ToShortDateString()),
+                new Claim("weight", user.Weight?.ToString() ?? ""),
+                new Claim("gender", user.Gender ? "1" : "0`"),
             };
         }
     }
