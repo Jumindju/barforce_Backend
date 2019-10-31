@@ -37,6 +37,11 @@ namespace Barforce_Backend.Repository
                 throw new HttpStatusCodeException(HttpStatusCode.Conflict, "Username already exists");
             }
 
+            if (await EMailExists(newUser.EMail))
+            {
+                throw new HttpStatusCodeException(HttpStatusCode.Conflict,"User with that email already exists");
+            }
+
             var salt = await _hashHelper.CreateSalt();
             var hashedPassword = _hashHelper.GetHash(newUser.Password, salt);
             const string cmd =
@@ -70,6 +75,9 @@ namespace Barforce_Backend.Repository
 
         public async Task<bool> UsernameExists(string userName)
         {
+            if (userName == null || userName.Length < 4)
+                throw new HttpStatusCodeException(HttpStatusCode.BadRequest,"Username needs at least 4 digits");
+
             const string cmd = "SELECT userid FROM \"user\" WHERE username=:userName";
             var parameter = new DynamicParameters(new
             {
@@ -83,6 +91,30 @@ namespace Barforce_Backend.Repository
             catch (SqlException e)
             {
                 const string errMsg = "Error while checking if userName exists";
+                _logger.LogError(e, errMsg);
+                throw new HttpStatusCodeException(HttpStatusCode.InternalServerError, errMsg, e);
+            }
+        }
+
+        public async Task<bool> EMailExists(string email)
+        {
+            var emailValidator = new EmailAddressAttribute();
+            if (!emailValidator.IsValid(email))
+                throw new HttpStatusCodeException(HttpStatusCode.BadRequest,"Invalid email format");
+
+            const string cmd = "SELECT userid FROM \"user\" WHERE email=:email";
+            var parameter = new DynamicParameters(new
+            {
+                email
+            });
+            try
+            {
+                using var con = await _dbHelper.GetConnection();
+                return await con.QueryFirstOrDefaultAsync<int?>(cmd, parameter) != null;
+            }
+            catch (SqlException e)
+            {
+                const string errMsg = "Error while checking if email exists";
                 _logger.LogError(e, errMsg);
                 throw new HttpStatusCodeException(HttpStatusCode.InternalServerError, errMsg, e);
             }

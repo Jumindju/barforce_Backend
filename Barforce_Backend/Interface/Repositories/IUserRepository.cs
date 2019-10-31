@@ -9,5 +9,6 @@ namespace Barforce_Backend.Interface.Repositories
         Task Register(UserRegister newUser);
         void Verify(Guid verifyGuid);
         Task<bool> UsernameExists(string userName);
+        Task<bool> EMailExists(string email);
     }
 }
