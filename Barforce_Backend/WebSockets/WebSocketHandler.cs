@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace Barforce_Backend.WebSockets
 {
-    public class WebSocketHandler
+    public abstract class WebSocketHandler
     {
         public WebSocketConnectionManager WebSocketConnectionManager { get; set; }
 
@@ -17,12 +17,12 @@ namespace Barforce_Backend.WebSockets
             WebSocketConnectionManager = webSocketConnectionManager;
         }
 
-        public void OnConnected(WebSocket socket)
+        public virtual void OnConnected(WebSocket socket)
         {
             WebSocketConnectionManager.AddSocket(socket);
         }
 
-        public async Task OnDisconnected(WebSocket socket)
+        public virtual async Task OnDisconnected(WebSocket socket)
         {
             await WebSocketConnectionManager.RemoveSocket(WebSocketConnectionManager.GetId(socket));
         }
@@ -45,9 +45,6 @@ namespace Barforce_Backend.WebSockets
             await SendMessageAsync(WebSocketConnectionManager.GetSocketById(socketId), message);
         }
 
-        public async Task ReceiveAsync(WebSocket socket, WebSocketReceiveResult result, byte[] buffer)
-        {
-            // if Client Sends Data
-        }
+        public abstract Task ReceiveAsync(WebSocket socket, WebSocketReceiveResult result, byte[] buffer);
     }
 }

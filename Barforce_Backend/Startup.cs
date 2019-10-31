@@ -57,7 +57,7 @@ namespace Barforce_Backend
                 ReceiveBufferSize = 4 * 1024
             };
             app.UseWebSockets(wsOptions);
-            app.MapWebSocketManager("/machine", serviceProvider.GetService<WebSocketHandler>());
+            app.MapWebSocketManager("/machine", serviceProvider.GetService<MachineHandler>());
 
             app.UseHttpStatusCodeExceptionMiddleware();
             app.UseRouting();
