@@ -2,7 +2,7 @@
 
 namespace Barforce_Backend.Model.Helper.Middleware
 {
-    public class MiddlewareExceptionResponse
+    public class ErrorResponse
     {
         public string Message { get; set; }
         public string InnerException { get; set; }

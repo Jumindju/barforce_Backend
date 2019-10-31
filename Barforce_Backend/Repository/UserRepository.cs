@@ -31,13 +31,6 @@ namespace Barforce_Backend.Repository
         {
             if (newUser == null)
                 throw new HttpStatusCodeException(HttpStatusCode.BadRequest, "No userData send");
-            var validationContext = new ValidationContext(newUser);
-            var results = new List<ValidationResult>();
-            if (!Validator.TryValidateObject(newUser, validationContext, results, true))
-            {
-                throw new HttpStatusCodeException(HttpStatusCode.BadRequest,
-                    string.Join(',', results.Select(res => res.ErrorMessage)));
-            }
 
             if (await UsernameExists(newUser.UserName))
             {
