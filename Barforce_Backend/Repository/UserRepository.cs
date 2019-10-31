@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Data.SqlClient;
@@ -164,6 +164,31 @@ namespace Barforce_Backend.Repository
             }
         }
 
+        public async Task<string> VerifyMail(int userId, Guid verifyToken)
+        {
+            var user = await ReadUserById(userId);
+            if (user == null)
+                throw new HttpStatusCodeException(HttpStatusCode.BadRequest, "User to verify not found");
+            if (user.Verified == null)
+                throw new HttpStatusCodeException(HttpStatusCode.Conflict, "User already verified");
+            if (user.Verified != verifyToken)
+                throw new HttpStatusCodeException(HttpStatusCode.BadRequest, "Invalid verify guid send");
+            const string cmd = "UPDATE \"user\" SET verified=null WHERE userid=:userId";
+            var parameter = new DynamicParameters(new
+            {
+                userId
+            });
+            try
+            {
+                using var con = await _dbHelper.GetConnection();
+                await con.ExecuteAsync(cmd, parameter);
+                return await _tokenHelper.GetUserToken(user);
+            }
+            catch (SqlException e)
+            {
+                throw new HttpStatusCodeException(HttpStatusCode.InternalServerError, "Error while verifing");
+            }
+        }
 
         private async Task<UserDto> ReadUserByName(string userName)
         {

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.ComponentModel.DataAnnotations;
 using System.Text;
 using System.Threading.Tasks;
@@ -55,6 +55,7 @@ namespace Barforce_Backend.Controllers
             return Ok(await _userRepository.Login(split[0], split[1]));
         }
 
+        [HttpGet("verify")]
         public async Task<IActionResult> VerifyUserMail([FromQuery] int userId, [FromQuery] Guid verifyToken)
         {
             return Ok(await _userRepository.VerifyMail(userId, verifyToken));

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Threading.Tasks;
 using Barforce_Backend.Model.User;
 
@@ -11,5 +11,6 @@ namespace Barforce_Backend.Interface.Repositories
         Task<bool> EMailExists(string email);
         Task<string> Login(string userName, string password);
         Task ResetPassword(int userId, string newPassword);
+        Task<string> VerifyMail(int userId, Guid verifyToken);
     }
 }
