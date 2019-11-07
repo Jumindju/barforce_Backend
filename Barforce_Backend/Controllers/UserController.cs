@@ -34,9 +34,9 @@ namespace Barforce_Backend.Controllers
         [HttpGet("email")]
         public async Task<IActionResult> CheckEmail([FromQuery] string email)
         {
-            return await _userRepository.EMailExists(email)
-                ? Conflict()
-                : StatusCode(200);
+            if (await _userRepository.EMailExists(email))
+                return Ok();
+            return NoContent();
         }
 
         [HttpGet("login")]
