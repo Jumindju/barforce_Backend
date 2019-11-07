@@ -22,18 +22,21 @@ namespace Barforce_Backend.Repository
         private readonly IHashHelper _hashHelper;
         private readonly IDbHelper _dbHelper;
         private readonly ITokenHelper _tokenHelper;
+        private readonly IEmailHelper _emailHelper;
 
         public UserRepository(
             ILoggerFactory loggerFactory,
             IHashHelper hashHelper,
             IDbHelper dbHelper,
-            ITokenHelper tokenHelper
+            ITokenHelper tokenHelper,
+            IEmailHelper emailHelper
         )
         {
             _logger = loggerFactory.CreateLogger<UserRepository>();
             _hashHelper = hashHelper;
             _dbHelper = dbHelper;
             _tokenHelper = tokenHelper;
+            _emailHelper = emailHelper;
         }
 
         public async Task Register(UserRegister newUser)
@@ -54,7 +57,7 @@ namespace Barforce_Backend.Repository
             var salt = await _hashHelper.CreateSalt();
             var hashedPassword = _hashHelper.GetHash(newUser.Password, salt);
             const string cmd =
-                "INSERT INTO \"user\"(username, birthday, weight, password, salt, gender) VALUES (:userName,:birthday, :weight, :password, :salt, :gender)";
+                "INSERT INTO \"user\"(username, birthday, weight, password, salt, gender) OUTPUT (VerifyGuid) VALUES (:userName,:birthday, :weight, :password, :salt, :gender)";
             var parameter = new DynamicParameters(new
             {
                 newUser.UserName,
@@ -67,8 +70,9 @@ namespace Barforce_Backend.Repository
             try
             {
                 using var con = await _dbHelper.GetConnection();
-                await con.ExecuteAsync(cmd, parameter);
+                var verifyGuid = await con.ExecuteScalarAsync<Guid>(cmd, parameter);
                 _logger.LogInformation("Created user");
+                await _emailHelper.SendVerifyMail(newUser.EMail, verifyGuid);
             }
             catch (SqlException e)
             {
