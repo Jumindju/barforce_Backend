@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Barforce_Backend.Helper;
+using Barforce_Backend.Helper.CustomPropertyValidator;
 using Barforce_Backend.Interface.Helper;
 using Barforce_Backend.Interface.Repositories;
 using Barforce_Backend.Model.Helper.Middleware;
@@ -26,6 +27,12 @@ namespace Barforce_Backend.Controllers
         [HttpGet("userName")]
         public async Task<IActionResult> CheckUsername([FromQuery] string userName)
         {
+            var userNameValidator = new UserNameValidator();
+            if (!userNameValidator.IsValid(userName))
+                return BadRequest(new ErrorResponse
+                {
+                    Message = "No valid userName send"
+                });
             if (await _userRepository.UsernameExists(userName))
                 return Ok();
             return NoContent();
@@ -34,6 +41,12 @@ namespace Barforce_Backend.Controllers
         [HttpGet("email")]
         public async Task<IActionResult> CheckEmail([FromQuery] string email)
         {
+            var emailValidator = new EmailAddressAttribute();
+            if (!emailValidator.IsValid(email))
+                return BadRequest(new ErrorResponse
+                {
+                    Message = "No valid email send"
+                });
             if (await _userRepository.EMailExists(email))
                 return Ok();
             return NoContent();
