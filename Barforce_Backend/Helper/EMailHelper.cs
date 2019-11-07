@@ -18,7 +18,7 @@ namespace Barforce_Backend.Helper
             _eMailOptions = eMailOptions.Value;
         }
 
-        public async Task SendVerifyMail(string receiverAddress, Guid verifyGuid)
+        public async Task SendVerifyMail(string receiverAddress, int verifyNum)
         {
             var fromAddress = new MailAddress(_eMailOptions.Address);
             var toAddress = new MailAddress(receiverAddress);
@@ -46,18 +46,20 @@ namespace Barforce_Backend.Helper
         <title>Barforce Anmeldung</title>
     </head>
     <body>
-        <h1>
+        <h3>
             Herzlichen Glückwunsch zur Anmeldung bei barforce
-        </h1>
+        </h3>
         <p>
-            Drücke einfach auf diesen <a href=""https://google.com?verifyId={verifyGuid}"">Link</a> um deinen Account freizuschalten
-                </p>
-                <footer>
-                Viel Spaß!
-                </footer>
-                </body>
-                </html>
-                "
+           Gib den folgenden Code einfach ein, nachdem du dich bei der App angemeldet hast.
+        </p>
+        <p style=""text-align:center;font-size:36px;font-color:#ff0000;"">
+            <b>{verifyNum}</b>
+        </p>
+        <footer>
+            Viel Spaß!
+        </footer>
+    </body>
+</html>"
                 };
                 await smtpClient.SendMailAsync(msg);
             }
