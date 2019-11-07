@@ -171,19 +171,32 @@ namespace Barforce_Backend.Repository
             }
         }
 
-        public async Task<string> VerifyMail(int userId, Guid verifyToken)
+        public async Task<string> VerifyMail(int verifyNumber)
         {
-            var user = await ReadUserById(userId);
+            const string verifyCmd =
+                "SELECT userid,username,email,birthday,weight,groups,gender,verified,currentToken,password, salt from viuser where verified=:verifyNumber";
+            var verifyParams = new
+            {
+                verifyNumber
+            };
+            UserDto user;
+            try
+            {
+                using var con = await _dbHelper.GetConnection();
+                user = await con.QueryFirstOrDefaultAsync<UserDto>(verifyCmd, verifyParams);
+            }
+            catch (Exception e)
+            {
+                throw new HttpStatusCodeException(HttpStatusCode.InternalServerError,
+                    "Error while reading user by verify number", e);
+            }
+
             if (user == null)
                 throw new HttpStatusCodeException(HttpStatusCode.BadRequest, "User to verify not found");
-            if (user.Verified == null)
-                throw new HttpStatusCodeException(HttpStatusCode.Conflict, "User already verified");
-            if (user.Verified != verifyToken)
-                throw new HttpStatusCodeException(HttpStatusCode.BadRequest, "Invalid verify guid send");
             const string cmd = "UPDATE \"user\" SET verified=null WHERE userid=:userId";
             var parameter = new DynamicParameters(new
             {
-                userId
+                user.UserId
             });
             try
             {
@@ -273,10 +286,12 @@ namespace Barforce_Backend.Repository
                 }
                 catch (SqlException e)
                 {
-                    throw new HttpStatusCodeException(HttpStatusCode.InternalServerError,"Error while creating rnd verifier",e);
+                    throw new HttpStatusCodeException(HttpStatusCode.InternalServerError,
+                        "Error while creating rnd verifier", e);
                 }
             }
-            throw new HttpStatusCodeException(HttpStatusCode.Conflict,"Could not get rnd num after 10 tries");
+
+            throw new HttpStatusCodeException(HttpStatusCode.Conflict, "Could not get rnd num after 10 tries");
         }
     }
 }
