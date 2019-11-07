@@ -17,6 +17,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Barforce_Backend.WebSockets;
 using Microsoft.IdentityModel.Tokens;
 
 namespace Barforce_Backend
@@ -59,17 +60,27 @@ namespace Barforce_Backend
                     };
                 });
 
+            services.AddWebSocketManager();
+
             services.AddControllers()
                 .AddNewtonsoftJson();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
-        public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
+        public void Configure(IApplicationBuilder app, IWebHostEnvironment env, IServiceProvider serviceProvider)
         {
             if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
             }
+
+            var wsOptions = new WebSocketOptions()
+            {
+                KeepAliveInterval = TimeSpan.FromSeconds(60),
+                ReceiveBufferSize = 4 * 1024
+            };
+            app.UseWebSockets(wsOptions);
+            app.MapWebSocketManager("/machine", serviceProvider.GetService<MachineHandler>());
 
             app.UseAuthorization();
 
