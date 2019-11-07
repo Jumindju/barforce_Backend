@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Data.SqlClient;
@@ -192,6 +192,24 @@ namespace Barforce_Backend.Repository
             catch (SqlException e)
             {
                 throw new HttpStatusCodeException(HttpStatusCode.InternalServerError, "Error while verifing");
+            }
+        }
+
+        public async Task LogOff(int userId)
+        {
+            const string cmd = "UPDATE \"user\" SET currenttoken=null WHERE userId=:userId";
+            var parameter = new DynamicParameters(new
+            {
+                userId
+            });
+            try
+            {
+                using var con = await _dbHelper.GetConnection();
+                await con.ExecuteAsync(cmd, parameter);
+            }
+            catch (SqlException e)
+            {
+                throw new HttpStatusCodeException(HttpStatusCode.InternalServerError,"Error while logging off",e);
             }
         }
 
