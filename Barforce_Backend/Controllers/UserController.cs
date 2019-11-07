@@ -1,5 +1,6 @@
 ﻿using System;
 using System.ComponentModel.DataAnnotations;
+using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Barforce_Backend.Interface.Repositories;
@@ -65,10 +66,16 @@ namespace Barforce_Backend.Controllers
         public async Task<IActionResult> RegisterUser([FromBody] UserRegister newUser)
         {
             if (!ModelState.IsValid)
+            {
+                var errors = ModelState.Values
+                    .SelectMany(val => val.Errors)
+                    .Select(err => err.ErrorMessage);
                 return BadRequest(new ErrorResponse
                 {
-                    Message = "Invalid user object send"
+                    Message = $"Invalid user object send: {string.Join(',', errors)}"
                 });
+            }
+
             await _userRepository.Register(newUser);
             return StatusCode(201);
         }
