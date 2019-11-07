@@ -41,6 +41,7 @@ namespace Barforce_Backend
             services.AddSingleton<IDbHelper, DbHelper>();
             services.AddSingleton<IHashHelper, HashHelper>();
             services.AddSingleton<ITokenHelper, TokenHelper>();
+            services.AddSingleton<IEmailHelper, EMailHelper>();
 
             services.AddScoped<IUserRepository, UserRepository>();
 
