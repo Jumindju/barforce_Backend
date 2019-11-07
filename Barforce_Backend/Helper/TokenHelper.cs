@@ -72,9 +72,10 @@ namespace Barforce_Backend.Helper
             var validations = new TokenValidationParameters
             {
                 ValidateIssuerSigningKey = true,
-                IssuerSigningKey = new SymmetricSecurityKey(key),
                 ValidateIssuer = false,
-                ValidateAudience = false
+                ValidateAudience = false,
+                ValidateLifetime = false,
+                IssuerSigningKey = new SymmetricSecurityKey(key)
             };
             var claims = handler.ValidateToken(bearer, validations, out var token);
 
@@ -85,6 +86,9 @@ namespace Barforce_Backend.Helper
             var jtiClaim = claims.FindFirst("jti")?.Value;
             if (jtiClaim != null)
                 validationUser.CurrentToken = new Guid(jtiClaim);
+            var expClaim = claims.FindFirst("exp")?.Value;
+            if (int.TryParse(expClaim, out var expDate))
+                validationUser.Exp = expDate;
             return validationUser;
         }
 
