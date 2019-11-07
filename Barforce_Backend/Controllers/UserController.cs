@@ -3,6 +3,8 @@ using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Barforce_Backend.Helper;
+using Barforce_Backend.Interface.Helper;
 using Barforce_Backend.Interface.Repositories;
 using Barforce_Backend.Model.Helper.Middleware;
 using Barforce_Backend.Model.User;
@@ -16,7 +18,6 @@ namespace Barforce_Backend.Controllers
     public class UserController : Controller
     {
         private readonly IUserRepository _userRepository;
-
         public UserController(IUserRepository userRepository)
         {
             _userRepository = userRepository;
@@ -80,7 +81,7 @@ namespace Barforce_Backend.Controllers
             return StatusCode(201);
         }
 
-//TODO: Secure Endpoint
+        [Authorize]
         [HttpPost("changePw")]
         public async Task<IActionResult> ResetPassword([FromBody] ResetPassword newPw)
         {
@@ -89,7 +90,13 @@ namespace Barforce_Backend.Controllers
                 {
                     Message = "Invalid new password"
                 });
-            await _userRepository.ResetPassword(1, newPw.NewPassword);
+            var user = HttpContext.GetTokenUser();
+            if (user == null)
+                return Unauthorized(new ErrorResponse
+                {
+                    Message = "No user found in token"
+                });
+            await _userRepository.ResetPassword(user.UserId, newPw.NewPassword);
             return Ok();
         }
     }
