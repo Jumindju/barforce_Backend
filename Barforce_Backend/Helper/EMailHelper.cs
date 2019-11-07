@@ -35,7 +35,25 @@ namespace Barforce_Backend.Helper
             using var msg = new MailMessage(fromAddress, toAddress)
             {
                 Subject = "Anmeldung bei barfoce",
-                Body = ""
+                // ReSharper disable once StringLiteralTypo
+                Body = @"
+<html lang=""de"">
+    <head>
+        <title>Barforce Anmeldung</title>
+    </head>
+    <body>
+        <h1>
+            Herzlichen Glückwunsch zur Anmeldung bei barforce
+        </h1>
+        <p>
+            Drücke einfach auf diesen <a href=""https://google.com?verifyId=abc"">Link</a> um deinen Account freizuschalten
+                </p>
+                <footer>
+                Viel Spaß!
+                </footer>
+                </body>
+                </html>
+                "
             };
 
             await smtpClient.SendMailAsync(msg);
