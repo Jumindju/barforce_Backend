@@ -4,6 +4,7 @@ CREATE TABLE "user"(
     UserId SERIAL PRIMARY KEY,
     UserName VARCHAR(64) NOT NULL UNIQUE,
     BirthDay timestamp without time zone NOT NULL,
+    EMail VARCHAR(256) NOT NULL,
     Weight INT NULL,
     Password VARCHAR(128) NOT NULL,
     Salt CHAR(16) NOT NULL,

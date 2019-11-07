@@ -74,7 +74,7 @@ namespace Barforce_Backend.Helper
             try
             {
                 using var con = await _dbHelper.GetConnection();
-                return con.QueryFirstOrDefault<int?>(cmd, parameter) == null;
+                return await con.QueryFirstOrDefaultAsync<int?>(cmd, parameter) == null;
             }
             catch (SqlException e)
             {

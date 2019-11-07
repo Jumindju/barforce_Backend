@@ -2,6 +2,7 @@ CREATE VIEW viUser AS
     SELECT
         userid,
         username,
+        email,
         birthday,
         weight,
         password,
