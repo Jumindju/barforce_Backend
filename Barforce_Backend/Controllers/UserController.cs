@@ -19,6 +19,7 @@ namespace Barforce_Backend.Controllers
     public class UserController : Controller
     {
         private readonly IUserRepository _userRepository;
+
         public UserController(IUserRepository userRepository)
         {
             _userRepository = userRepository;
@@ -71,9 +72,9 @@ namespace Barforce_Backend.Controllers
         }
 
         [HttpGet("verify")]
-        public async Task<IActionResult> VerifyUserMail([FromQuery] int userId, [FromQuery] Guid verifyToken)
+        public async Task<IActionResult> VerifyUserMail([FromQuery] int userId, [FromQuery] int verifyNumber)
         {
-            return Ok(await _userRepository.VerifyMail(userId, verifyToken));
+            return Ok(await _userRepository.VerifyMail(verifyNumber));
         }
 
         [HttpPost("register")]
