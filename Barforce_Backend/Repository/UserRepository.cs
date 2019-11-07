@@ -1,18 +1,14 @@
 using System;
-using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Data.SqlClient;
-using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
 using Barforce_Backend.Interface.Helper;
 using Barforce_Backend.Interface.Repositories;
-using Barforce_Backend.Model.Configuration;
 using Barforce_Backend.Model.Helper.Middleware;
 using Barforce_Backend.Model.User;
 using Dapper;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 
 namespace Barforce_Backend.Repository
 {

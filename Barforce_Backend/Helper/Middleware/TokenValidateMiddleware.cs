@@ -3,7 +3,6 @@ using System.Data.SqlClient;
 using System.Net;
 using System.Threading.Tasks;
 using Barforce_Backend.Interface.Helper;
-using Barforce_Backend.Model.Helper;
 using Barforce_Backend.Model.Helper.Middleware;
 using Dapper;
 using Microsoft.AspNetCore.Http;

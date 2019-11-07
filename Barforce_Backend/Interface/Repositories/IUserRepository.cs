@@ -1,5 +1,4 @@
-﻿using System;
-using System.Threading.Tasks;
+﻿using System.Threading.Tasks;
 using Barforce_Backend.Model.User;
 
 namespace Barforce_Backend.Interface.Repositories

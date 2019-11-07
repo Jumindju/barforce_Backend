@@ -5,12 +5,10 @@ using System.Text;
 using System.Threading.Tasks;
 using Barforce_Backend.Helper;
 using Barforce_Backend.Helper.CustomPropertyValidator;
-using Barforce_Backend.Interface.Helper;
 using Barforce_Backend.Interface.Repositories;
 using Barforce_Backend.Model.Helper.Middleware;
 using Barforce_Backend.Model.User;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Barforce_Backend.Controllers
