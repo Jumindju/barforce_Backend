@@ -7,6 +7,5 @@ namespace Barforce_Backend.Interface.Helper
     public interface ITokenHelper
     {
         Task<string> GetUserToken(AuthUser user);
-        UserValidation GetUserFromToken(string bearer);
     }
 }

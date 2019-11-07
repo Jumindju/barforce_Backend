@@ -1,8 +1,8 @@
 ﻿using System;
 
-namespace Barforce_Backend.Model.Helper.Middleware
+namespace Barforce_Backend.Model.User
 {
-    public class UserValidation
+    public class TokenUser
     {
         public Guid? CurrentToken { get; set; }
         public int UserId { get; set; }

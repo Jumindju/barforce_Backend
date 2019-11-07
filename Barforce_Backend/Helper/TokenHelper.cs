@@ -65,33 +65,6 @@ namespace Barforce_Backend.Helper
             return tokenHandler.WriteToken(token);
         }
 
-        public UserValidation GetUserFromToken(string bearer)
-        {
-            var key = Encoding.UTF8.GetBytes(_jwtOptions.Secret);
-            var handler = new JwtSecurityTokenHandler();
-            var validations = new TokenValidationParameters
-            {
-                ValidateIssuerSigningKey = true,
-                ValidateIssuer = false,
-                ValidateAudience = false,
-                ValidateLifetime = false,
-                IssuerSigningKey = new SymmetricSecurityKey(key)
-            };
-            var claims = handler.ValidateToken(bearer, validations, out var token);
-
-            var validationUser = new UserValidation();
-            var userIdClaim = claims.FindFirst("userId")?.Value;
-            if (int.TryParse(userIdClaim, out var userId))
-                validationUser.UserId = userId;
-            var jtiClaim = claims.FindFirst("jti")?.Value;
-            if (jtiClaim != null)
-                validationUser.CurrentToken = new Guid(jtiClaim);
-            var expClaim = claims.FindFirst("exp")?.Value;
-            if (int.TryParse(expClaim, out var expDate))
-                validationUser.Exp = expDate;
-            return validationUser;
-        }
-
         private static List<Claim> GetUserClaims(AuthUser user)
         {
             return new List<Claim>

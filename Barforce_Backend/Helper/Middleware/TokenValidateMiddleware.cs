@@ -3,6 +3,7 @@ using System.Data.SqlClient;
 using System.Net;
 using System.Threading.Tasks;
 using Barforce_Backend.Interface.Helper;
+using Barforce_Backend.Model.Helper;
 using Barforce_Backend.Model.Helper.Middleware;
 using Dapper;
 using Microsoft.AspNetCore.Http;
@@ -24,31 +25,22 @@ namespace Barforce_Backend.Helper.Middleware
 
         public async Task Invoke(HttpContext context)
         {
-            var authHeader = context?.Request?.Headers["Authorization"];
-            if (authHeader?.Count == 1)
-            {
-                var token = authHeader.ToString();
-                if (string.IsNullOrEmpty(token))
-                    throw new HttpStatusCodeException(HttpStatusCode.Unauthorized, "No bearer found");
-                var tokenBegin = token.Substring(0, 6).ToLower();
-                if (tokenBegin == "bearer")
-                {
-                    var bearerToken = token.Substring(7);
-                    var user = _tokenHelper.GetUserFromToken(bearerToken);
-                    if (user == null)
-                        throw new HttpStatusCodeException(HttpStatusCode.Unauthorized, "User of token is invalid");
-                    if (user.Exp < GetCurrentUnixTs())
-                        throw new HttpStatusCodeException(HttpStatusCode.Unauthorized, "Token expired");
-                    if (user.CurrentToken != null && !await IsTokenValid(user.UserId, user.CurrentToken.Value))
-                    {
-                        throw new HttpStatusCodeException(HttpStatusCode.Unauthorized, "Invalid token send");
-                    }
-                }
-            }
-
+            await CheckUserBearer(context);
             await _next(context);
         }
 
+        private async Task CheckUserBearer(HttpContext context)
+        {
+            var user = context.GetTokenUser();
+            if (user == null)
+                return;
+            if (user.Exp < GetCurrentUnixTs())
+                throw new HttpStatusCodeException(HttpStatusCode.Unauthorized, "Token expired");
+            if (user.CurrentToken != null && !await IsTokenValid(user.UserId, user.CurrentToken.Value))
+            {
+                throw new HttpStatusCodeException(HttpStatusCode.Unauthorized, "Invalid token send");
+            }
+        }
         private static int GetCurrentUnixTs()
         {
             return (int) (DateTime.UtcNow.Subtract(new DateTime(1970, 1, 1))).TotalSeconds;
