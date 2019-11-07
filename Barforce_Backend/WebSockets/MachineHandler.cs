@@ -35,13 +35,21 @@ namespace Barforce_Backend.WebSockets
                 {
                     case "init":
                         int.TryParse(message.Data.ToString(), out int dbId);
-                        connections.Add(socketId, dbId);
+                        string tmpSocketId = connections.FirstOrDefault(x => x.Value == dbId).Key;
+                        if (tmpSocketId != null)
+                        {
+                            Console.WriteLine("Machine already inited: " + dbId);
+                        }
+                        else
+                        {
+                            connections.Add(socketId, dbId);
+                        }
                         MachineQueue queue = machineMessages.Find(x => x.DBId == dbId);
                         if (queue == null)
                         {
                             machineMessages.Add(new MachineQueue() { DBId = dbId, Messages = new Queue<string>() });
                         }
-                        else if(queue.Messages.Count > 0)
+                        else if (queue.Messages.Count > 0)
                         {
                             string msg = queue.Messages.First();
                             await SendMessageAsync(socketId, msg);
@@ -63,19 +71,26 @@ namespace Barforce_Backend.WebSockets
         }
         public override async Task SendMessageToMachine(int machineId, string message)
         {
-            string socketId = connections.First(x => x.Value == machineId).Key;
-            if (socketId != null)
+            if (!string.IsNullOrEmpty(message))
             {
-                MachineQueue queue = machineMessages.Find(x => x.DBId == machineId);
-                queue.Messages.Enqueue(message);
-                if (queue.Messages.Count == 1)
+                string socketId = connections.FirstOrDefault(x => x.Value == machineId).Key;
+                if (socketId != null)
                 {
-                    await SendMessageAsync(socketId, message);
+                    MachineQueue queue = machineMessages.Find(x => x.DBId == machineId);
+                    queue.Messages.Enqueue(message);
+                    if (queue.Messages.Count == 1)
+                    {
+                        await SendMessageAsync(socketId, message);
+                    }
+                }
+                else
+                {
+                    Console.WriteLine("Cannot Get SocketId by machineId: " + machineId + " ,Message: " + message);
                 }
             }
             else
             {
-                Console.WriteLine("Cannot Get SocketId by machineId: " + machineId + " ,Message: " + message);
+                Console.WriteLine("Invalid Message: " + message);
             }
         }
         public override async Task OnDisconnected(WebSocket socket)
