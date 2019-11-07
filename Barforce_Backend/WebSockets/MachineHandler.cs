@@ -22,7 +22,6 @@ namespace Barforce_Backend.WebSockets
             try
             {
                 message = JsonConvert.DeserializeObject<AdruinoMessage>(messageString);
-
             }
             catch
             {
@@ -37,29 +36,29 @@ namespace Barforce_Backend.WebSockets
                     case "init":
                         int.TryParse(message.Data.ToString(), out int dbId);
                         connections.Add(socketId, dbId);
-                        MachineQueue queue = machineMessages.Find(x => x.socketId == socketId);
+                        MachineQueue queue = machineMessages.Find(x => x.DBId == dbId);
                         if (queue == null)
                         {
-                            machineMessages.Add(new MachineQueue() { socketId = socketId, messages = new Queue<string>() });
+                            machineMessages.Add(new MachineQueue() { DBId = dbId, Messages = new Queue<string>() });
                         }
-                        else if(queue.messages.Count > 0)
+                        else if(queue.Messages.Count > 0)
                         {
-                            string msg = queue.messages.First();
-                            await SendMessageAsync(queue.socketId, msg);
+                            string msg = queue.Messages.First();
+                            await SendMessageAsync(socketId, msg);
                         }
                         break;
                     case "finished":
-                        MachineQueue queue1 = machineMessages.Find(x => x.socketId == socketId );
-                        queue1.messages.Dequeue();
-                        if (queue1.messages.Count > 0)
+                        connections.TryGetValue(socketId, out int machineId);
+                        MachineQueue queue1 = machineMessages.Find(x => x.DBId == machineId);
+                        queue1.Messages.Dequeue();
+                        if (queue1.Messages.Count > 0)
                         {
-                            string msg = queue1.messages.First();
-                            await SendMessageAsync(queue1.socketId, msg);
+                            string msg = queue1.Messages.First();
+                            await SendMessageAsync(socketId, msg);
                         }
                         break;
                     default: break;
                 }
-                Console.WriteLine("Message: " + message);
             }
         }
         public override async Task SendMessageToMachine(int machineId, string message)
@@ -67,9 +66,9 @@ namespace Barforce_Backend.WebSockets
             string socketId = connections.First(x => x.Value == machineId).Key;
             if (socketId != null)
             {
-                MachineQueue queue = machineMessages.Find(x => x.socketId == socketId);
-                queue.messages.Enqueue(message);
-                if (queue.messages.Count == 1)
+                MachineQueue queue = machineMessages.Find(x => x.DBId == machineId);
+                queue.Messages.Enqueue(message);
+                if (queue.Messages.Count == 1)
                 {
                     await SendMessageAsync(socketId, message);
                 }

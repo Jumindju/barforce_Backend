@@ -7,7 +7,7 @@ namespace Barforce_Backend.Model.Websocket
 {
     public class MachineQueue
     {
-        public string socketId { get; set; }
-        public Queue<string> messages { get; set; }
+        public int DBId { get; set; }
+        public Queue<string> Messages { get; set; }
     }
 }
