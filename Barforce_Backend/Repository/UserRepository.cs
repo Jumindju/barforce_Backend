@@ -56,8 +56,9 @@ namespace Barforce_Backend.Repository
 
             var salt = await _hashHelper.CreateSalt();
             var hashedPassword = _hashHelper.GetHash(newUser.Password, salt);
+            var rndVerifier = await GetUserValidationNumber();
             const string cmd =
-                "INSERT INTO \"user\"(username, birthday, weight, password, salt, gender, email) VALUES (:userName,:birthday, :weight, :password, :salt, :gender, :email) RETURNING verified";
+                "INSERT INTO \"user\"(username, birthday, weight, password, salt, gender, email, verified) VALUES (:userName,:birthday, :weight, :password, :salt, :gender, :email, :rndVerifier)";
             var parameter = new DynamicParameters(new
             {
                 newUser.UserName,
@@ -66,14 +67,15 @@ namespace Barforce_Backend.Repository
                 password = hashedPassword,
                 salt,
                 newUser.Gender,
-                newUser.EMail
+                newUser.EMail,
+                rndVerifier
             });
             try
             {
                 using var con = await _dbHelper.GetConnection();
-                var verifyGuid = await con.ExecuteScalarAsync<Guid>(cmd, parameter);
+                await con.ExecuteAsync(cmd, parameter);
                 _logger.LogInformation("Created user");
-                await _emailHelper.SendVerifyMail(newUser.EMail, verifyGuid);
+                await _emailHelper.SendVerifyMail(newUser.EMail, rndVerifier);
             }
             catch (SqlException e)
             {
@@ -209,7 +211,7 @@ namespace Barforce_Backend.Repository
             }
             catch (SqlException e)
             {
-                throw new HttpStatusCodeException(HttpStatusCode.InternalServerError,"Error while logging off",e);
+                throw new HttpStatusCodeException(HttpStatusCode.InternalServerError, "Error while logging off", e);
             }
         }
 
@@ -251,6 +253,30 @@ namespace Barforce_Backend.Repository
                 throw new HttpStatusCodeException(HttpStatusCode.InternalServerError,
                     "Error while reading user by userId", e);
             }
+        }
+
+        private async Task<int> GetUserValidationNumber()
+        {
+            var rnd = new Random();
+            const string checkCmd = "SELECT userId FROM \"user\" WHERE verified=:rndNumber";
+            for (var maxTries = 0; maxTries < 10; maxTries++)
+            {
+                var rndNumber = rnd.Next(10000, 99999);
+                try
+                {
+                    using var con = await _dbHelper.GetConnection();
+                    if (await con.ExecuteScalarAsync<int?>(checkCmd, new
+                    {
+                        rndNumber
+                    }) == null)
+                        return rndNumber;
+                }
+                catch (SqlException e)
+                {
+                    throw new HttpStatusCodeException(HttpStatusCode.InternalServerError,"Error while creating rnd verifier",e);
+                }
+            }
+            throw new HttpStatusCodeException(HttpStatusCode.Conflict,"Could not get rnd num after 10 tries");
         }
     }
 }
