@@ -37,8 +37,8 @@ namespace Barforce_Backend.Helper.Middleware
                     var user = _tokenHelper.GetUserFromToken(bearerToken);
                     if (user == null)
                         throw new HttpStatusCodeException(HttpStatusCode.Unauthorized, "User of token is invalid");
-                    if(user.Exp<GetCurrentUnixTs())
-                        throw new HttpStatusCodeException(HttpStatusCode.Unauthorized,"Token expired");
+                    if (user.Exp < GetCurrentUnixTs())
+                        throw new HttpStatusCodeException(HttpStatusCode.Unauthorized, "Token expired");
                     if (user.CurrentToken != null && !await IsTokenValid(user.UserId, user.CurrentToken.Value))
                     {
                         throw new HttpStatusCodeException(HttpStatusCode.Unauthorized, "Invalid token send");
@@ -48,10 +48,12 @@ namespace Barforce_Backend.Helper.Middleware
 
             await _next(context);
         }
+
         private static int GetCurrentUnixTs()
         {
-            return (int)(DateTime.UtcNow.Subtract(new DateTime(1970, 1, 1))).TotalSeconds;
+            return (int) (DateTime.UtcNow.Subtract(new DateTime(1970, 1, 1))).TotalSeconds;
         }
+
         private async Task<bool> IsTokenValid(int userId, Guid verifyToken)
         {
             const string cmd = @"SELECT userid
