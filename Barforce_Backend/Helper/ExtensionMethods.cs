@@ -34,7 +34,7 @@ namespace Barforce_Backend.Helper
                 ValidateLifetime = false,
                 IssuerSigningKey = new SymmetricSecurityKey(key)
             };
-            var claims = handler.ValidateToken(bearerToken, validations, out var userToken);
+            var claims = handler.ValidateToken(bearerToken, validations, out _);
 
             var validationUser = new TokenUser();
             var userIdClaim = claims.FindFirst("userId")?.Value;

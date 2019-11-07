@@ -4,7 +4,6 @@ using Barforce_Backend.Helper.Middleware;
 using Barforce_Backend.Interface.Helper;
 using Barforce_Backend.Interface.Repositories;
 using Barforce_Backend.Model.Configuration;
-using Barforce_Backend.Model.Helper.Database;
 using Barforce_Backend.Repository;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;

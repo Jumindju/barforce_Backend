@@ -1,4 +1,4 @@
-namespace Barforce_Backend.Model.Helper.Database
+namespace Barforce_Backend.Model.Configuration
 {
     public class DbSettings
     {

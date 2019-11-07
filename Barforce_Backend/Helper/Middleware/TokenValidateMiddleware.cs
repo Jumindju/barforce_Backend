@@ -13,13 +13,11 @@ namespace Barforce_Backend.Helper.Middleware
     {
         private readonly RequestDelegate _next;
         private readonly IDbHelper _dbHelper;
-        private readonly ITokenHelper _tokenHelper;
 
-        public TokenValidateMiddleware(RequestDelegate next, IDbHelper dbHelper, ITokenHelper tokenHelper)
+        public TokenValidateMiddleware(RequestDelegate next, IDbHelper dbHelper)
         {
             _next = next;
             _dbHelper = dbHelper;
-            _tokenHelper = tokenHelper;
         }
 
         public async Task Invoke(HttpContext context)

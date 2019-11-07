@@ -202,7 +202,7 @@ namespace Barforce_Backend.Repository
             }
             catch (SqlException e)
             {
-                throw new HttpStatusCodeException(HttpStatusCode.InternalServerError, "Error while verifing");
+                throw new HttpStatusCodeException(HttpStatusCode.InternalServerError, "Error while verifying",e);
             }
         }
 
