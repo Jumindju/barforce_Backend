@@ -14,6 +14,9 @@ namespace Barforce_Backend.Model.User
         public int? Weight { get; set; }
 
         [Required]
+        [EmailAddress]
+        public string EMail { get; set; }
+        [Required]
         public bool? Gender { get; set; }
 
         [Required]
