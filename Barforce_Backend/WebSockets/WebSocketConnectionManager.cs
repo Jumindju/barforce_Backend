@@ -27,9 +27,6 @@ namespace Barforce_Backend.WebSockets
             {
                 sId = CreateConnectionId();
             }
-
-
-
         }
 
         public async Task RemoveSocket(string id)

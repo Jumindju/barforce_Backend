@@ -27,8 +27,9 @@ namespace Barforce_Backend.WebSockets
             await WebSocketConnectionManager.RemoveSocket(WebSocketConnectionManager.GetId(socket));
         }
 
-        private async Task SendMessageAsync(WebSocket socket, string message)
+        public async Task SendMessageAsync(string socketId, string message)
         {
+            WebSocket socket = WebSocketConnectionManager.GetSocketById(socketId);
             if (socket.State != WebSocketState.Open)
                 return;
 
@@ -40,11 +41,7 @@ namespace Barforce_Backend.WebSockets
                                    cancellationToken: CancellationToken.None);
         }
 
-        public async Task SendMessageAsync(string socketId, string message)
-        {
-            await SendMessageAsync(WebSocketConnectionManager.GetSocketById(socketId), message);
-        }
-
         public abstract Task ReceiveAsync(WebSocket socket, WebSocketReceiveResult result, byte[] buffer);
+        public abstract Task SendMessageToMachine(int machineId, string message);
     }
 }
