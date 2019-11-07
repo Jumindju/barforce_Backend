@@ -57,7 +57,7 @@ namespace Barforce_Backend.Repository
             var salt = await _hashHelper.CreateSalt();
             var hashedPassword = _hashHelper.GetHash(newUser.Password, salt);
             const string cmd =
-                "INSERT INTO \"user\"(username, birthday, weight, password, salt, gender) OUTPUT (VerifyGuid) VALUES (:userName,:birthday, :weight, :password, :salt, :gender)";
+                "INSERT INTO \"user\"(username, birthday, weight, password, salt, gender, email) VALUES (:userName,:birthday, :weight, :password, :salt, :gender, :email) RETURNING verified";
             var parameter = new DynamicParameters(new
             {
                 newUser.UserName,
@@ -65,7 +65,8 @@ namespace Barforce_Backend.Repository
                 newUser.Weight,
                 password = hashedPassword,
                 salt,
-                newUser.Gender
+                newUser.Gender,
+                newUser.EMail
             });
             try
             {
