@@ -99,5 +99,19 @@ namespace Barforce_Backend.Controllers
             await _userRepository.ResetPassword(user.UserId, newPw.NewPassword);
             return Ok();
         }
+
+        [Authorize]
+        [HttpPost("Logoff")]
+        public async Task<IActionResult> LogOff()
+        {
+            var user = HttpContext.GetTokenUser();
+            if (user == null)
+                return Unauthorized(new ErrorResponse
+                {
+                    Message = "No user found in token"
+                });
+            await _userRepository.LogOff(user.UserId);
+            return Ok();
+        }
     }
 }

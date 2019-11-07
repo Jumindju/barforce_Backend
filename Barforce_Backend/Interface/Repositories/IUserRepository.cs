@@ -12,5 +12,6 @@ namespace Barforce_Backend.Interface.Repositories
         Task<string> Login(string userName, string password);
         Task ResetPassword(int userId, string newPassword);
         Task<string> VerifyMail(int userId, Guid verifyToken);
+        Task LogOff(int userId);
     }
 }

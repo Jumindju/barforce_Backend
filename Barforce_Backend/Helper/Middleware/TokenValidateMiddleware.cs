@@ -52,7 +52,8 @@ namespace Barforce_Backend.Helper.Middleware
                                     FROM viuser
                                     WHERE 
                                         userId=:userId AND
-                                        currenttoken=:curToken";
+                                        currenttoken=:curToken AND
+                                        currenttoken IS NOT NULL";
             var parameter = new DynamicParameters(new
             {
                 userId,
