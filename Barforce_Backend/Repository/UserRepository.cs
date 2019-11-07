@@ -100,7 +100,7 @@ namespace Barforce_Backend.Repository
         {
             var user = await ReadUserById(userId);
             if (user == null)
-                throw new HttpStatusCodeException(HttpStatusCode.BadRequest, "User does not exists");
+                throw new HttpStatusCodeException(HttpStatusCode.Unauthorized, "User does not exists");
             var newSalt = await _hashHelper.CreateSalt();
             var newHashedPw = _hashHelper.GetHash(newPassword, newSalt);
             const string cmd = "UPDATE \"user\" SET password=:newPw, salt=:newSalt WHERE userid=:userId";
