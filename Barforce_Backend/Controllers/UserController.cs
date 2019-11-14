@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Text;
@@ -81,7 +81,26 @@ namespace Barforce_Backend.Controllers
         [HttpGet("verify")]
         public async Task<IActionResult> VerifyUserMail([FromQuery] int userId, [FromQuery] int verifyNumber)
         {
-            return Ok(await _userRepository.VerifyMail(verifyNumber));
+            try
+            {
+                var userData = Request.GetBasicAuth();
+                var userToken = await _userRepository.VerifyMail(userData[0], userData[1], verifyNumber);
+                return Ok(userToken);
+            }
+            catch (InvalidOperationException e)
+            {
+                return Unauthorized(new ErrorResponse
+                {
+                    Message = e.Message
+                });
+            }
+            catch (IndexOutOfRangeException e)
+            {
+                return BadRequest(new ErrorResponse
+                {
+                    Message = e.Message
+                });
+            }
         }
 
         [HttpPost("register")]

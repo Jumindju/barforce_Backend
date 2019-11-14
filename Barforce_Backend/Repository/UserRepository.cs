@@ -171,13 +171,19 @@ namespace Barforce_Backend.Repository
             }
         }
 
-        public async Task<string> VerifyMail(int verifyNumber)
+        public async Task<string> VerifyMail(string userName, string password, int verifyNumber)
         {
+            var loginUser = await ReadUserByName(userName);
+            if (loginUser == null)
+                throw new HttpStatusCodeException(HttpStatusCode.Unauthorized, "User not found");
+            if (!_hashHelper.IsCorrectPassword(password, loginUser.Salt, loginUser.Password))
+                throw new HttpStatusCodeException(HttpStatusCode.Forbidden, "Invalid password");
             const string verifyCmd =
-                "SELECT userid,username,email,birthday,weight,groups,gender,verified,currentToken,password, salt from viuser where verified=:verifyNumber";
+                "SELECT userid,username,email,birthday,weight,groups,gender,verified,currentToken,password, salt from viuser where verified=:verifyNumber AND userid=:userId";
             var verifyParams = new
             {
-                verifyNumber
+                verifyNumber,
+                userid = loginUser.UserId
             };
             UserDto user;
             try
