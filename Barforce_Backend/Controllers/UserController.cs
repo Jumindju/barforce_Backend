@@ -54,25 +54,51 @@ namespace Barforce_Backend.Controllers
         [HttpGet("login")]
         public async Task<IActionResult> LoginUser()
         {
-            var header = Request.Headers["Authorization"];
-            if (header.Count == 0)
-                return Unauthorized();
-            var baseAuth = header.ToString().Substring(6);
-            var encryptedAuth = Convert.FromBase64String(baseAuth);
-            var authString = Encoding.UTF8.GetString(encryptedAuth);
-            var split = authString.Split(":", StringSplitOptions.RemoveEmptyEntries);
-            if (split.Length != 2)
+            try
+            {
+                var userData = Request.GetBasicAuth();
+                var userToken = await _userRepository.Login(userData[0], userData[1]);
+                return Ok(userToken);
+            }
+            catch (InvalidOperationException e)
+            {
+                return Unauthorized(new ErrorResponse
+                {
+                    Message = e.Message
+                });
+            }
+            catch (IndexOutOfRangeException e)
+            {
                 return BadRequest(new ErrorResponse
                 {
-                    Message = "Invalid auth header"
+                    Message = e.Message
                 });
-            return Ok(await _userRepository.Login(split[0], split[1]));
+            }
         }
 
         [HttpGet("verify")]
         public async Task<IActionResult> VerifyUserMail([FromQuery] int userId, [FromQuery] int verifyNumber)
         {
-            return Ok(await _userRepository.VerifyMail(verifyNumber));
+            try
+            {
+                var userData = Request.GetBasicAuth();
+                var userToken = await _userRepository.VerifyMail(userData[0], userData[1], verifyNumber);
+                return Ok(userToken);
+            }
+            catch (InvalidOperationException e)
+            {
+                return Unauthorized(new ErrorResponse
+                {
+                    Message = e.Message
+                });
+            }
+            catch (IndexOutOfRangeException e)
+            {
+                return BadRequest(new ErrorResponse
+                {
+                    Message = e.Message
+                });
+            }
         }
 
         [HttpPost("register")]
