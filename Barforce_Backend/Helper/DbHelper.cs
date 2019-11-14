@@ -27,15 +27,16 @@ namespace Barforce_Backend.Helper
         }
         public async Task<IDbConnection> GetConnection(CancellationToken ct = default)
         {
+            var conString = GetConnectionString();
             try
             {
-                var con = new NpgsqlConnection(GetConnectionString());
+                var con = new NpgsqlConnection(conString);
                 await con.OpenAsync(ct);
                 return con;
             }
             catch (Exception e)
             {
-                _logger.LogError(e,"Error while opening sql connection");
+                _logger.LogError(e,$"Error while opening sql connection: {conString}");
                 throw new HttpStatusCodeException(HttpStatusCode.ServiceUnavailable,"Could not open sql connection", e);
             }
         }
