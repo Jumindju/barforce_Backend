@@ -48,6 +48,7 @@ namespace Barforce_Backend.WebSockets
                         else
                         {
                             connections.Add(socketId, dbId);
+                            _logger.LogInformation("init Machine: " + dbId);
                         }
                         MachineQueue queue = machineMessages.Find(x => x.DBId == dbId);
                         if (queue == null)

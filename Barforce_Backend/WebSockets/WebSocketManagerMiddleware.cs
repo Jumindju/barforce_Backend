@@ -24,17 +24,17 @@ namespace Barforce_Backend.WebSockets
 
         public async Task Invoke(HttpContext context)
         {
-            _logger.LogInformation($"Websocketiddleware, Invoke, Context: {context}");
+            _logger.LogInformation($"Websocketiddleware, Invoke, Context: {context.ToString()}");
             if (!context.WebSockets.IsWebSocketRequest)
                 return;
 
             var socket = await context.WebSockets.AcceptWebSocketAsync();
-            _logger.LogInformation($"Websocketiddleware, Invoke, Accept Websocket, Socket: {socket}");
+            _logger.LogInformation($"Websocketiddleware, Invoke, Accept Websocket, Socket: {socket.ToString()}");
             _webSocketHandler.OnConnected(socket); // aus Query String Geräte-Id => Socket damit aufbauen => auch in DB speicher
 
             await Receive(socket, async (result, buffer) =>
             {
-                _logger.LogInformation($"Websocketiddleware, Invoke, Received Websocket, Result: {result}, Buffer: {buffer}");
+                _logger.LogInformation($"Websocketiddleware, Invoke, Received Websocket, Result: {result.ToString()}, Buffer: {buffer.ToString()}");
                 if (result.MessageType == WebSocketMessageType.Text)
                 {
                     await _webSocketHandler.ReceiveAsync(socket, result, buffer);
