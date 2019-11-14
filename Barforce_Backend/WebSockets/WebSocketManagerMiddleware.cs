@@ -50,7 +50,7 @@ namespace Barforce_Backend.WebSockets
                 }
 
             });
-            await _next.Invoke(context);
+            await _next(context).ConfigureAwait(true);
         }
 
         private async Task Receive(WebSocket socket, Action<WebSocketReceiveResult, byte[]> handleMessage)
