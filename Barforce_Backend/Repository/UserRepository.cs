@@ -1,18 +1,14 @@
 using System;
-using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Data.SqlClient;
-using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
 using Barforce_Backend.Interface.Helper;
 using Barforce_Backend.Interface.Repositories;
-using Barforce_Backend.Model.Configuration;
 using Barforce_Backend.Model.Helper.Middleware;
 using Barforce_Backend.Model.User;
 using Dapper;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 
 namespace Barforce_Backend.Repository
 {
@@ -171,13 +167,19 @@ namespace Barforce_Backend.Repository
             }
         }
 
-        public async Task<string> VerifyMail(int verifyNumber)
+        public async Task<string> VerifyMail(string userName, string password, int verifyNumber)
         {
+            var loginUser = await ReadUserByName(userName);
+            if (loginUser == null)
+                throw new HttpStatusCodeException(HttpStatusCode.Unauthorized, "User not found");
+            if (!_hashHelper.IsCorrectPassword(password, loginUser.Salt, loginUser.Password))
+                throw new HttpStatusCodeException(HttpStatusCode.Forbidden, "Invalid password");
             const string verifyCmd =
-                "SELECT userid,username,email,birthday,weight,groups,gender,verified,currentToken,password, salt from viuser where verified=:verifyNumber";
+                "SELECT userid,username,email,birthday,weight,groups,gender,verified,currentToken,password, salt from viuser where verified=:verifyNumber AND userid=:userId";
             var verifyParams = new
             {
-                verifyNumber
+                verifyNumber,
+                userid = loginUser.UserId
             };
             UserDto user;
             try
@@ -206,7 +208,7 @@ namespace Barforce_Backend.Repository
             }
             catch (SqlException e)
             {
-                throw new HttpStatusCodeException(HttpStatusCode.InternalServerError, "Error while verifing");
+                throw new HttpStatusCodeException(HttpStatusCode.InternalServerError, "Error while verifying",e);
             }
         }
 

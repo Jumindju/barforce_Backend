@@ -5,7 +5,6 @@ using System.Text;
 using System.Threading.Tasks;
 using Barforce_Backend.Interface.Helper;
 using Barforce_Backend.Model.Helper.Middleware;
-using Barforce_Backend.Model.User;
 using Dapper;
 using Konscious.Security.Cryptography;
 using Microsoft.Extensions.Logging;

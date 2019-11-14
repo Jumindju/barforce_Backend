@@ -10,7 +10,7 @@ CREATE TABLE "user"(
     Salt CHAR(16) NOT NULL,
     Groups smallint NOT NULL DEFAULT 0,
     Gender BOOLEAN NOT NULL,
-    Verified uuid NULL DEFAULT uuid_generate_v4(),
+    Verified int NULL DEFAULT uuid_generate_v4(),
     CurrentToken uuid NULL,
     CreationTime timestamp default now(),
     DeleteTime timestamp NULL
