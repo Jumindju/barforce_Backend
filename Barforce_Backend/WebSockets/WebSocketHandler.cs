@@ -19,7 +19,6 @@ namespace Barforce_Backend.WebSockets
 
         public virtual void OnConnected(WebSocket socket)
         {
-            Console.WriteLine($"WebsocketHandler, Socket Connected");
             WebSocketConnectionManager.AddSocket(socket);
         }
 

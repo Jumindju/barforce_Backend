@@ -1,4 +1,5 @@
 using Barforce_Backend.Model.Websocket;
+using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
@@ -14,7 +15,11 @@ namespace Barforce_Backend.WebSockets
 
         List<MachineQueue> machineMessages = new List<MachineQueue>();
         Dictionary<string, int> connections = new Dictionary<string, int>();
-        public MachineHandler(WebSocketConnectionManager webSocketConnectionManager) : base(webSocketConnectionManager) { }
+        private readonly ILogger _logger;
+
+        public MachineHandler(WebSocketConnectionManager webSocketConnectionManager, ILoggerFactory loggerFactory) : base(webSocketConnectionManager) {
+            _logger = loggerFactory.CreateLogger<MachineHandler>();
+        }
         public override async Task ReceiveAsync(WebSocket socket, WebSocketReceiveResult result, byte[] buffer)
         {
             string messageString = Encoding.UTF8.GetString(buffer, 0, result.Count);
@@ -25,7 +30,7 @@ namespace Barforce_Backend.WebSockets
             }
             catch
             {
-                Console.WriteLine("Invalid Adruino Message: " + messageString);
+                _logger.LogError("Invalid Adruino Message: " + messageString);
             }
             if (message != null)
             {
@@ -38,7 +43,7 @@ namespace Barforce_Backend.WebSockets
                         string tmpSocketId = connections.FirstOrDefault(x => x.Value == dbId).Key;
                         if (tmpSocketId != null)
                         {
-                            Console.WriteLine("Machine already inited: " + dbId);
+                            _logger.LogError("Machine already inited: " + dbId);
                         }
                         else
                         {
@@ -85,12 +90,12 @@ namespace Barforce_Backend.WebSockets
                 }
                 else
                 {
-                    Console.WriteLine("Cannot Get SocketId by machineId: " + machineId + " ,Message: " + message);
+                    _logger.LogError("Cannot Get SocketId by machineId: " + machineId + " ,Message: " + message);
                 }
             }
             else
             {
-                Console.WriteLine("Invalid Message: " + message);
+                _logger.LogError("Invalid Message: " + message);
             }
         }
         public override async Task OnDisconnected(WebSocket socket)
@@ -100,7 +105,7 @@ namespace Barforce_Backend.WebSockets
             if (connections.TryGetValue(socketId, out int dbId))
             {
                 connections.Remove(socketId);
-                Console.WriteLine("Machine Disconnected (DBId): " + dbId);
+                _logger.LogInformation("Machine Disconnected (DBId): " + dbId);
             }
         }
     }
