@@ -37,7 +37,7 @@ namespace Barforce_Backend.Helper
             catch (Exception e)
             {
                 _logger.LogError(e,$"Error while opening sql connection: {conString}");
-                throw new HttpStatusCodeException(HttpStatusCode.ServiceUnavailable,"Could not open sql connection", e);
+                throw new HttpStatusCodeException(HttpStatusCode.ServiceUnavailable,$"Could not open sql connection: {conString}", e);
             }
         }
         private string GetConnectionString()
