@@ -39,9 +39,10 @@ namespace Barforce_Backend.WebSockets
                                    messageType: WebSocketMessageType.Text,
                                    endOfMessage: true,
                                    cancellationToken: CancellationToken.None);
+            return;
         }
 
         public abstract Task ReceiveAsync(WebSocket socket, WebSocketReceiveResult result, byte[] buffer);
-        public abstract Task SendMessageToMachine(int machineId, string message);
+        public abstract Task<int> SendMessageToMachine(int machineId, string message);
     }
 }

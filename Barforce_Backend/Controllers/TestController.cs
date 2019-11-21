@@ -25,8 +25,8 @@ namespace Barforce_Backend.Controllers
         [HttpPost]
         public async Task<IActionResult> TestWebsocketAsync()
         {
-            await _machineHandler.SendMessageToMachine(1, "Hello from Server");
-            return Ok("Send Message to Client");
+            int queuePosition = await _machineHandler.SendMessageToMachine(1, "Hello from Server"); // 0 = dran, 1 = als nächstes ...
+            return Ok($"Send Message to Client, QueuePosition: {queuePosition}");
         }
     }
 }

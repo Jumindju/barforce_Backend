@@ -30,7 +30,7 @@ namespace Barforce_Backend.WebSockets
 
             var socket = await context.WebSockets.AcceptWebSocketAsync();
             _logger.LogInformation($"Websocketiddleware, Invoke, Accept Websocket, Socket: {socket.ToString()}");
-            _webSocketHandler.OnConnected(socket); // aus Query String Geräte-Id => Socket damit aufbauen => auch in DB speicher
+            _webSocketHandler.OnConnected(socket);
 
             await Receive(socket, async (result, buffer) =>
             {

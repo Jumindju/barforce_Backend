@@ -75,7 +75,7 @@ namespace Barforce_Backend.WebSockets
                 }
             }
         }
-        public override async Task SendMessageToMachine(int machineId, string message)
+        public override async Task<int> SendMessageToMachine(int machineId, string message)
         {
             if (!string.IsNullOrEmpty(message))
             {
@@ -88,6 +88,7 @@ namespace Barforce_Backend.WebSockets
                     {
                         await SendMessageAsync(socketId, message);
                     }
+                    return queue.Messages.Count - 1; // Position in Warteschlange
                 }
                 else
                 {
@@ -98,6 +99,7 @@ namespace Barforce_Backend.WebSockets
             {
                 _logger.LogError("Invalid Message: " + message);
             }
+            return -1;
         }
         public override async Task OnDisconnected(WebSocket socket)
         {
