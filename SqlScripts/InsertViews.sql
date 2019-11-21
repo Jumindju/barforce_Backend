@@ -59,9 +59,13 @@ CREATE VIEW viContainer AS
         ingredientid,
         fillingvolume,
         fillinglevel,
-        m.name MachineName
+        m.name MachineName,
+       i.name,
+       i.alcohollevel,
+       i.background
     FROM
         container c JOIN
-        viMachine m on c.machineid=m.Id
+        viMachine m on c.machineid=m.Id JOIN
+        viingredient i on c.ingredientid=i.id
     WHERE
         c.deletetime IS NULL
