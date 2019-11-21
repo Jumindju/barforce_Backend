@@ -42,6 +42,7 @@ namespace Barforce_Backend
 
             services.AddScoped<IUserRepository, UserRepository>();
             services.AddScoped<IContainerRepo, ContainerRepo>();
+            services.AddScoped<IDrinkRepository, DrinkRepository>();
 
             var jwtOptions = Configuration.GetSection("JwtOptions").Get<JwtOptions>();
             var symmetricSecurityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtOptions.Secret));

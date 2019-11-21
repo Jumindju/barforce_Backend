@@ -18,6 +18,7 @@ namespace Barforce_Backend.Repository
         {
             _dbHelper = dbHelper;
         }
+
         public async Task<IEnumerable<ContainerDto>> ReadAll(int machineId)
         {
             const string cmd = @"
@@ -40,14 +41,13 @@ namespace Barforce_Backend.Repository
             });
             try
             {
-                using (var con = await _dbHelper.GetConnection())
-                {
-                    return await con.QueryAsync<ContainerDto>(cmd, parameter);
-                }
+                using var con = await _dbHelper.GetConnection();
+                return await con.QueryAsync<ContainerDto>(cmd, parameter);
             }
             catch (Exception e)
             {
-                throw new HttpStatusCodeException(HttpStatusCode.InternalServerError,"Error while reading containers",e);
+                throw new HttpStatusCodeException(HttpStatusCode.InternalServerError, "Error while reading containers",
+                    e);
             }
         }
 
