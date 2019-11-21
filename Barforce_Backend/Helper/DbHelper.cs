@@ -19,12 +19,15 @@ namespace Barforce_Backend.Helper
         private readonly DbSettings _dbSettings;
         private readonly IWebHostEnvironment _hostEnvironment;
         private readonly ILogger _logger;
-        public DbHelper(IOptions<DbSettings> dbSettings, IWebHostEnvironment hostEnvironment, ILoggerFactory loggerFactory)
+
+        public DbHelper(IOptions<DbSettings> dbSettings, IWebHostEnvironment hostEnvironment,
+            ILoggerFactory loggerFactory)
         {
             _dbSettings = dbSettings.Value;
             _hostEnvironment = hostEnvironment;
             _logger = loggerFactory.CreateLogger<DbHelper>();
         }
+
         public async Task<IDbConnection> GetConnection(CancellationToken ct = default)
         {
             var conString = GetConnectionString();
@@ -36,10 +39,12 @@ namespace Barforce_Backend.Helper
             }
             catch (Exception e)
             {
-                _logger.LogError(e,$"Error while opening sql connection: {conString}");
-                throw new HttpStatusCodeException(HttpStatusCode.ServiceUnavailable,$"Could not open sql connection: {conString}", e);
+                _logger.LogError(e, $"Error while opening sql connection");
+                throw new HttpStatusCodeException(HttpStatusCode.ServiceUnavailable,
+                    $"Could not open sql connection", e);
             }
         }
+
         private string GetConnectionString()
         {
             return _hostEnvironment.IsDevelopment()
@@ -50,7 +55,8 @@ namespace Barforce_Backend.Helper
         private static string PostgresUriToConString(string postgresUri)
         {
             var conStringInformation = postgresUri.Split(new[] {':', '@', '/'}, StringSplitOptions.RemoveEmptyEntries);
-            return $"UserName={conStringInformation[0]};Password={conStringInformation[1]};Host={conStringInformation[2]};Database={conStringInformation[4]}";
+            return
+                $"UserName={conStringInformation[1]};Password={conStringInformation[2]};Host={conStringInformation[3]};Database={conStringInformation[5]}";
         }
     }
 }
