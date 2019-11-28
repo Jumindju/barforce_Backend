@@ -58,7 +58,7 @@ namespace Barforce_Backend.Helper
             return validationUser;
         }
 
-        public static string[] GetBasicAuth(this Microsoft.AspNetCore.Http.HttpRequest request)
+        public static string[] GetBasicAuth(this HttpRequest request)
         {
             var header = request.Headers["Authorization"];
             if (header.Count == 0)

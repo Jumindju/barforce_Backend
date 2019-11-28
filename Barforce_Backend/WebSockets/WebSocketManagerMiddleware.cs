@@ -1,8 +1,6 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Net.WebSockets;
 using System.Threading;
 using System.Threading.Tasks;
@@ -12,13 +10,13 @@ namespace Barforce_Backend.WebSockets
     public class WebSocketManagerMiddleware
     {
         private readonly RequestDelegate _next;
-        private WebSocketHandler _webSocketHandler { get; set; }
+        private WebSocketHandler WebSocketHandler { get; set; }
         private readonly ILogger _logger;
 
         public WebSocketManagerMiddleware(RequestDelegate next, WebSocketHandler webSocketHandler, ILoggerFactory loggerFactory)
         {
             _next = next;
-            _webSocketHandler = webSocketHandler;
+            WebSocketHandler = webSocketHandler;
             _logger = loggerFactory.CreateLogger<WebSocketManagerMiddleware>();
         }
 
@@ -30,21 +28,21 @@ namespace Barforce_Backend.WebSockets
 
             var socket = await context.WebSockets.AcceptWebSocketAsync();
             _logger.LogInformation($"Websocketiddleware, Invoke, Accept Websocket, Socket: {socket.ToString()}");
-            _webSocketHandler.OnConnected(socket); // aus Query String Geräte-Id => Socket damit aufbauen => auch in DB speicher
+            WebSocketHandler.OnConnected(socket); // aus Query String Geräte-Id => Socket damit aufbauen => auch in DB speicher
 
             await Receive(socket, async (result, buffer) =>
             {
                 _logger.LogInformation($"Websocketiddleware, Invoke, Received Websocket, Result: {result.ToString()}, Buffer: {buffer.ToString()}");
                 if (result.MessageType == WebSocketMessageType.Text)
                 {
-                    await _webSocketHandler.ReceiveAsync(socket, result, buffer);
+                    await WebSocketHandler.ReceiveAsync(socket, result, buffer);
                     _logger.LogInformation($"Websocketiddleware, Invoke, Received Websocket Text");
                     return;
                 }
 
                 else if (result.MessageType == WebSocketMessageType.Close)
                 {
-                    await _webSocketHandler.OnDisconnected(socket);
+                    await WebSocketHandler.OnDisconnected(socket);
                     _logger.LogInformation($"Websocketiddleware, Invoke, Received Websocket Close");
                     return;
                 }

@@ -53,7 +53,7 @@ namespace Barforce_Backend.Repository
 
         public Task<bool> IngredientInContainer(int machineId, List<int> ingredients)
         {
-            throw new System.NotImplementedException();
+            throw new NotImplementedException();
         }
     }
 }
