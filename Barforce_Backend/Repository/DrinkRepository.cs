@@ -9,6 +9,7 @@ using Barforce_Backend.Interface.Repositories;
 using Barforce_Backend.Model.Drink;
 using Barforce_Backend.Model.Drink.Favorite;
 using Barforce_Backend.Model.Helper.Middleware;
+using Barforce_Backend.Model.Ingredient;
 using Dapper;
 
 namespace Barforce_Backend.Repository
@@ -90,11 +91,11 @@ namespace Barforce_Backend.Repository
             return drinksInQueue;
         }
 
-        public async Task<int> AddFavorite(int userId, FavoriteDrink newFavorite)
+        public async Task<int> AddFavorite(int userId, NewFavoriteDrink newNewFavorite)
         {
-            if (string.IsNullOrEmpty(newFavorite?.Name))
+            if (string.IsNullOrEmpty(newNewFavorite?.Name))
                 throw new HttpStatusCodeException(HttpStatusCode.BadRequest, "No favorite name");
-            var drinkId = await GetDrink(newFavorite);
+            var drinkId = await GetDrink(newNewFavorite);
 
             const string cmd = @"INSERT INTO favoritedrink
                                 (
@@ -109,7 +110,7 @@ namespace Barforce_Backend.Repository
             {
                 userId,
                 drinkId,
-                drinkName = newFavorite.Name
+                drinkName = newNewFavorite.Name
             });
             try
             {
@@ -118,10 +119,73 @@ namespace Barforce_Backend.Repository
             }
             catch (Exception e)
             {
-                throw new HttpStatusCodeException(HttpStatusCode.InternalServerError, "Error while adding favorite",e);
+                throw new HttpStatusCodeException(HttpStatusCode.InternalServerError, "Error while adding favorite", e);
             }
 
             return drinkId;
+        }
+
+        public async Task<List<FavoriteDrink>> GetFavoriteDrinks(int userId)
+        {
+            const string getDrinksCmd = @"SELECT 
+                                                userid,
+                                                drinkid,
+                                                glasssize,
+                                                glasssizeid,
+                                                ""name""
+                                            from vifavoritedrink
+                                            where userid=:userid";
+            var getDrinksParameter = new DynamicParameters(new
+            {
+                userId
+            });
+            List<FavoriteDrink> favoriteDrinks;
+            try
+            {
+                using var con = await _dbHelper.GetConnection();
+                var favDrinksRaw = await con.QueryAsync<FavoriteDrink>(getDrinksCmd, getDrinksParameter);
+                favoriteDrinks = favDrinksRaw.ToList();
+            }
+            catch (Exception e)
+            {
+                throw new HttpStatusCodeException(HttpStatusCode.InternalServerError,
+                    "Error while getting favorite drinks", e);
+            }
+
+            const string favDrinkIngredientsCmd = @"SELECT 
+                                                           id   as ingredientId,
+                                                           amount,
+                                                           name as ingredientName,
+                                                           alcohollevel,
+                                                           background
+                                                    FROM drink2liquid
+                                                             join viingredient on ingredientid = id
+                                                    WHERE drinkid = :drinkid";
+            foreach (var favoriteDrink in favoriteDrinks)
+            {
+                var drinkParams = new DynamicParameters(new
+                {
+                    favoriteDrink.DrinkId
+                });
+                try
+                {
+                    using var con = await _dbHelper.GetConnection();
+                    var ingredientsOfDrink = await con.QueryAsync<DrinkIngredient>(favDrinkIngredientsCmd, drinkParams);
+                    favoriteDrink.Ingredients = ingredientsOfDrink.ToList();
+                }
+                catch (Exception e)
+                {
+                    throw new HttpStatusCodeException(HttpStatusCode.InternalServerError,
+                        "Error while getting ingredients of favorite drink", e);
+                }
+            }
+
+            return favoriteDrinks;
+        }
+
+        public Task DeleteFavoriteDrink(int userId, int drinkId)
+        {
+            throw new NotImplementedException();
         }
 
         private async Task<int> GetDrink(CreateDrink newDrink, int? machineId = null)

@@ -9,6 +9,8 @@ namespace Barforce_Backend.Interface.Repositories
     {
         Task<IEnumerable<GlassSize>> ReadGlassSizes();
         Task<int> CreateOrder(int userId, int machineId, CreateDrink newDrink);
-        Task<int> AddFavorite(int userId, FavoriteDrink newFavorite);
+        Task<int> AddFavorite(int userId, NewFavoriteDrink newNewFavorite);
+        Task<List<FavoriteDrink>> GetFavoriteDrinks(int userId);
+        Task DeleteFavoriteDrink(int userId, int drinkId);
     }
 }

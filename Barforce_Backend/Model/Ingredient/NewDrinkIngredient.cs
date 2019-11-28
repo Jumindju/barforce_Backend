@@ -1,6 +1,6 @@
-﻿namespace Barforce_Backend.Model.Drink
+﻿namespace Barforce_Backend.Model.Ingredient
 {
-    public class DrinkIngredient
+    public class NewDrinkIngredient
     {
         public int IngredientId { get; set; }
         public double Amount { get; set; }

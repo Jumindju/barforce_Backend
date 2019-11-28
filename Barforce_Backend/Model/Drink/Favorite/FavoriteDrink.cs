@@ -1,10 +1,12 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using System.Collections.Generic;
+using Barforce_Backend.Model.Ingredient;
 
 namespace Barforce_Backend.Model.Drink.Favorite
 {
-    public class FavoriteDrink : CreateDrink
+    public class FavoriteDrink : NewFavoriteDrink
     {
-        [StringLength(64)]
-        public string Name { get; set; }
+        public int GlassSize { get; set; }
+        public int DrinkId { get; set; }
+        public new List<DrinkIngredient> Ingredients { get; set; }
     }
 }

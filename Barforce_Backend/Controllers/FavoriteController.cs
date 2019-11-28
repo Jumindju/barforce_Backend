@@ -1,4 +1,5 @@
-﻿using System.Net.Http;
+﻿using System.Linq;
+using System.Net.Http;
 using System.Threading.Tasks;
 using Barforce_Backend.Helper;
 using Barforce_Backend.Interface.Repositories;
@@ -23,16 +24,20 @@ namespace Barforce_Backend.Controllers
         [HttpGet]
         public async Task<IActionResult> GetFavorites()
         {
-            return StatusCode(StatusCodes.Status501NotImplemented);
+            var user = HttpContext.GetTokenUser();
+            var favoriteDrinks = await _drinkRepository.GetFavoriteDrinks(user.UserId);
+            if (favoriteDrinks.Any())
+                return Ok(favoriteDrinks);
+            return NoContent();
         }
 
         [HttpPost]
-        public async Task<IActionResult> AddFavorite([FromBody] FavoriteDrink newFavorite)
+        public async Task<IActionResult> AddFavorite([FromBody] NewFavoriteDrink newNewFavorite)
         {
             var user = HttpContext.GetTokenUser();
             return StatusCode(201, new
             {
-                drinkId = await _drinkRepository.AddFavorite(user.UserId, newFavorite)
+                drinkId = await _drinkRepository.AddFavorite(user.UserId, newNewFavorite)
             });
         }
     }
