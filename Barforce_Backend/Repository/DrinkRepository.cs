@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using Barforce_Backend.Interface.Helper;
 using Barforce_Backend.Interface.Repositories;
 using Barforce_Backend.Model.Drink;
+using Barforce_Backend.Model.Drink.Favorite;
 using Barforce_Backend.Model.Helper.Middleware;
 using Dapper;
 
@@ -35,12 +36,12 @@ namespace Barforce_Backend.Repository
 
         public async Task<int> CreateOrder(int userId, int machineId, CreateDrink newDrink)
         {
-            var drinkId = await GetDrink(machineId, newDrink);
+            var drinkId = await GetDrink(newDrink, machineId);
             const string createOrderCmd = @"INSERT INTO ""order""
                                             (
                                              userid,
                                              drinkId
-                                            )
+                                            );
                                             VALUES(
                                                 :userId,
                                                  :drinkId 
@@ -89,7 +90,41 @@ namespace Barforce_Backend.Repository
             return drinksInQueue;
         }
 
-        public async Task<int> GetDrink(int machineId, CreateDrink newDrink)
+        public async Task<int> AddFavorite(int userId, FavoriteDrink newFavorite)
+        {
+            if (string.IsNullOrEmpty(newFavorite?.Name))
+                throw new HttpStatusCodeException(HttpStatusCode.BadRequest, "No favorite name");
+            var drinkId = await GetDrink(newFavorite);
+
+            const string cmd = @"INSERT INTO favoritedrink
+                                (
+                                    userid, drinkid, ""name""                                
+                                )
+                                VALUES(
+                                       :userId,
+                                       :drinkId,
+                                       :drinkName
+                                )";
+            var parameter = new DynamicParameters(new
+            {
+                userId,
+                drinkId,
+                drinkName = newFavorite.Name
+            });
+            try
+            {
+                using var con = await _dbHelper.GetConnection();
+                await con.ExecuteAsync(cmd, parameter);
+            }
+            catch (Exception e)
+            {
+                throw new HttpStatusCodeException(HttpStatusCode.InternalServerError, "Error while adding favorite",e);
+            }
+
+            return drinkId;
+        }
+
+        private async Task<int> GetDrink(CreateDrink newDrink, int? machineId = null)
         {
             // Validate Input
             if (newDrink == null)
@@ -98,6 +133,20 @@ namespace Barforce_Backend.Repository
                 throw new HttpStatusCodeException(HttpStatusCode.BadRequest, "No ingredients defined");
             if (!await GlassSizeExists(newDrink.GlassSizeId))
                 throw new HttpStatusCodeException(HttpStatusCode.BadRequest, "Glass size doesnt exits");
+
+            if (machineId != null)
+                await CheckContainer(machineId.Value, newDrink);
+
+            if (newDrink.Ingredients.Sum(ingredient => ingredient.Amount) > 100)
+                throw new HttpStatusCodeException(HttpStatusCode.BadRequest,
+                    "Maximum total 100 percent per drink allowed");
+
+            var existingDrinkId = await DrinkAlreadyExists(newDrink);
+            return existingDrinkId ?? await CreateDrink(newDrink);
+        }
+
+        private async Task CheckContainer(int machineId, CreateDrink newDrink)
+        {
             // Check if liquid is in containers
             var currentContainers = await _containerRepo.ReadAll(machineId);
             var drinksInContainers = currentContainers.Select(container => container.IngredientId).ToList();
@@ -108,15 +157,6 @@ namespace Barforce_Backend.Repository
             {
                 throw new HttpStatusCodeException(HttpStatusCode.Conflict, "Ingredient of drink not in container");
             }
-
-            if (newDrink.Ingredients.Sum(ingredient => ingredient.Amount) > 100)
-                throw new HttpStatusCodeException(HttpStatusCode.BadRequest,
-                    "Maximum total 100 percent per drink allowed");
-
-            // TODO: Check if drink was already inserted
-
-            var existingDrinkId = await DrinkAlreadyExists(newDrink);
-            return existingDrinkId ?? await CreateDrink(newDrink);
         }
 
         private async Task<bool> GlassSizeExists(int glassId)
