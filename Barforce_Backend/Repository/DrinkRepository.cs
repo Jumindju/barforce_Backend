@@ -96,7 +96,8 @@ namespace Barforce_Backend.Repository
             if (string.IsNullOrEmpty(newNewFavourite?.Name))
                 throw new HttpStatusCodeException(HttpStatusCode.BadRequest, "No favourite name");
             var drinkId = await GetDrink(newNewFavourite);
-
+            if (await FavoriteDrinkExists(userId, drinkId))
+                throw new HttpStatusCodeException(HttpStatusCode.NotModified, "Drink is already users favorite");
             const string cmd = @"INSERT INTO favouritedrink
                                 (
                                     userid, drinkid, ""name""                                
@@ -119,7 +120,8 @@ namespace Barforce_Backend.Repository
             }
             catch (Exception e)
             {
-                throw new HttpStatusCodeException(HttpStatusCode.InternalServerError, "Error while adding favourite", e);
+                throw new HttpStatusCodeException(HttpStatusCode.InternalServerError, "Error while adding favourite",
+                    e);
             }
 
             return drinkId;
@@ -190,8 +192,8 @@ namespace Barforce_Backend.Repository
 
         private async Task<bool> FavoriteDrinkExists(int userId, int drinkId)
         {
-            var cmd = @"SELECT drinkId FROM vifavouritedrink WHERE drinkId=:drinkId AND userId=:userId";
-            var parameter= new DynamicParameters(new
+            const string cmd = @"SELECT drinkId FROM vifavouritedrink WHERE drinkId=:drinkId AND userId=:userId";
+            var parameter = new DynamicParameters(new
             {
                 userId,
                 drinkId
@@ -204,7 +206,8 @@ namespace Barforce_Backend.Repository
             }
             catch (Exception e)
             {
-                throw new HttpStatusCodeException(HttpStatusCode.InternalServerError,"Error while checking if favorite drink exists",e);
+                throw new HttpStatusCodeException(HttpStatusCode.InternalServerError,
+                    "Error while checking if favorite drink exists", e);
             }
         }
 
