@@ -33,7 +33,63 @@ namespace Barforce_Backend.Repository
             return await con.QueryAsync<GlassSize>(cmd);
         }
 
-        public async Task CreateDrink(int machineId, CreateDrink newDrink)
+        public async Task<int> CreateOrder(int userId, int machineId, CreateDrink newDrink)
+        {
+            var drinkId = await GetDrink(machineId, newDrink);
+            const string createOrderCmd = @"INSERT INTO ""order""
+                                            (
+                                             userid,
+                                             drinkId
+                                            )
+                                            VALUES(
+                                                :userId,
+                                                 :drinkId 
+                                            )
+                                            RETURNING id";
+            var createOrderParams = new DynamicParameters(new
+            {
+                userId,
+                drinkId
+            });
+            int orderId;
+            try
+            {
+                using var con = await _dbHelper.GetConnection();
+                orderId = await con.ExecuteScalarAsync<int>(createOrderCmd, createOrderParams);
+            }
+            catch (Exception e)
+            {
+                throw new HttpStatusCodeException(HttpStatusCode.InternalServerError, "Could not create drink", e);
+            }
+
+            //TODO: Call Arduino
+            await Task.Delay(3000);
+            var rnd = new Random();
+            var drinksInQueue = rnd.Next(0, 7);
+
+            const string setServeTimeCmd = @"
+                UPDATE ""order"" 
+                SET servetime=:serveTime 
+                WHERE id=:id";
+            var serveParameter = new DynamicParameters(new
+            {
+                id = orderId,
+                serveTime = DateTime.UtcNow
+            });
+            try
+            {
+                using var con = await _dbHelper.GetConnection();
+                await con.ExecuteAsync(setServeTimeCmd, serveParameter);
+            }
+            catch (Exception e)
+            {
+                throw new HttpStatusCodeException(HttpStatusCode.InternalServerError, "Could not set serveTime", e);
+            }
+
+            return drinksInQueue;
+        }
+
+        public async Task<int> GetDrink(int machineId, CreateDrink newDrink)
         {
             // Validate Input
             if (newDrink == null)
@@ -60,7 +116,7 @@ namespace Barforce_Backend.Repository
             // TODO: Check if drink was already inserted
 
             var existingDrinkId = await DrinkAlreadyExists(newDrink);
-            var drinkId = existingDrinkId ?? await CreateDrink(newDrink);
+            return existingDrinkId ?? await CreateDrink(newDrink);
         }
 
         private async Task<bool> GlassSizeExists(int glassId)

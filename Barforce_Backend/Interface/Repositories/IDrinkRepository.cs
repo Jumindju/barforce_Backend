@@ -7,6 +7,6 @@ namespace Barforce_Backend.Interface.Repositories
     public interface IDrinkRepository
     {
         Task<IEnumerable<GlassSize>> ReadGlassSizes();
-        Task CreateDrink(int machineId, CreateDrink newDrink);
+        Task<int> CreateOrder(int userId,int machineId, CreateDrink newDrink);
     }
 }
