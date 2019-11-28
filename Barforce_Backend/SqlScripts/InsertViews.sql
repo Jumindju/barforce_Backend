@@ -21,7 +21,8 @@ WHERE deletetime IS NULL;
 
 CREATE VIEW viDrink AS
 SELECT d.id,
-       g.size
+       g.size,
+       g.id AS GlassSizeId
 FROM drink d
          JOIN
      viGlassSize g ON glasssizeid = g.Id;
@@ -55,4 +56,14 @@ FROM container c
      viMachine m on c.machineid = m.Id
          JOIN
      viingredient i on i.id = c.ingredientid
-WHERE c.deletetime IS NULL
+WHERE c.deletetime IS NULL;
+
+CREATE VIEW viFavouriteDrink AS
+SELECT userid,
+       drinkid,
+       name,
+       size AS GlassSize,
+       GlassSizeId
+FROM favouritedrink fd
+         join vidrink d on fd.drinkid = d.id
+WHERE deletetime IS NULL;
