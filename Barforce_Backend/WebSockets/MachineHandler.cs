@@ -12,12 +12,12 @@ namespace Barforce_Backend.WebSockets
 {
     public class MachineHandler : WebSocketHandler
     {
-
         List<MachineQueue> machineMessages = new List<MachineQueue>();
         Dictionary<string, int> connections = new Dictionary<string, int>();
         private readonly ILogger _logger;
 
-        public MachineHandler(WebSocketConnectionManager webSocketConnectionManager, ILoggerFactory loggerFactory) : base(webSocketConnectionManager) {
+        public MachineHandler(WebSocketConnectionManager webSocketConnectionManager, ILoggerFactory loggerFactory) : base(webSocketConnectionManager)
+        {
             _logger = loggerFactory.CreateLogger<MachineHandler>();
         }
         public override async Task ReceiveAsync(WebSocket socket, WebSocketReceiveResult result, byte[] buffer)
@@ -75,8 +75,9 @@ namespace Barforce_Backend.WebSockets
                 }
             }
         }
-        public override async Task<int> SendMessageToMachine(int machineId, string message)
+        public override async Task<int> SendMessageToMachine(int machineId, List<DrinkCommand> _message)
         {
+            string message = _message.ToString();
             if (!string.IsNullOrEmpty(message))
             {
                 string socketId = connections.FirstOrDefault(x => x.Value == machineId).Key;

@@ -1,3 +1,4 @@
+using Barforce_Backend.Model.Websocket;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -43,6 +44,6 @@ namespace Barforce_Backend.WebSockets
         }
 
         public abstract Task ReceiveAsync(WebSocket socket, WebSocketReceiveResult result, byte[] buffer);
-        public abstract Task<int> SendMessageToMachine(int machineId, string message);
+        public abstract Task<int> SendMessageToMachine(int machineId, List<DrinkCommand> _message);
     }
 }
