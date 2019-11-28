@@ -1,18 +1,14 @@
 using System;
-using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Data.SqlClient;
-using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
 using Barforce_Backend.Interface.Helper;
 using Barforce_Backend.Interface.Repositories;
-using Barforce_Backend.Model.Configuration;
 using Barforce_Backend.Model.Helper.Middleware;
 using Barforce_Backend.Model.User;
 using Dapper;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 
 namespace Barforce_Backend.Repository
 {
@@ -56,8 +52,9 @@ namespace Barforce_Backend.Repository
 
             var salt = await _hashHelper.CreateSalt();
             var hashedPassword = _hashHelper.GetHash(newUser.Password, salt);
+            var rndVerifier = await GetUserValidationNumber();
             const string cmd =
-                "INSERT INTO \"user\"(username, birthday, weight, password, salt, gender, email) VALUES (:userName,:birthday, :weight, :password, :salt, :gender, :email) RETURNING verified";
+                "INSERT INTO \"user\"(username, birthday, weight, password, salt, gender, email, verified) VALUES (:userName,:birthday, :weight, :password, :salt, :gender, :email, :rndVerifier)";
             var parameter = new DynamicParameters(new
             {
                 newUser.UserName,
@@ -66,14 +63,15 @@ namespace Barforce_Backend.Repository
                 password = hashedPassword,
                 salt,
                 newUser.Gender,
-                newUser.EMail
+                newUser.EMail,
+                rndVerifier
             });
             try
             {
                 using var con = await _dbHelper.GetConnection();
-                var verifyGuid = await con.ExecuteScalarAsync<Guid>(cmd, parameter);
+                await con.ExecuteAsync(cmd, parameter);
                 _logger.LogInformation("Created user");
-                await _emailHelper.SendVerifyMail(newUser.EMail, verifyGuid);
+                await _emailHelper.SendVerifyMail(newUser.EMail, rndVerifier);
             }
             catch (SqlException e)
             {
@@ -169,19 +167,38 @@ namespace Barforce_Backend.Repository
             }
         }
 
-        public async Task<string> VerifyMail(int userId, Guid verifyToken)
+        public async Task<string> VerifyMail(string userName, string password, int verifyNumber)
         {
-            var user = await ReadUserById(userId);
+            var loginUser = await ReadUserByName(userName);
+            if (loginUser == null)
+                throw new HttpStatusCodeException(HttpStatusCode.Unauthorized, "User not found");
+            if (!_hashHelper.IsCorrectPassword(password, loginUser.Salt, loginUser.Password))
+                throw new HttpStatusCodeException(HttpStatusCode.Forbidden, "Invalid password");
+            const string verifyCmd =
+                "SELECT userid,username,email,birthday,weight,groups,gender,verified,currentToken,password, salt from viuser where verified=:verifyNumber AND userid=:userId";
+            var verifyParams = new
+            {
+                verifyNumber,
+                userid = loginUser.UserId
+            };
+            UserDto user;
+            try
+            {
+                using var con = await _dbHelper.GetConnection();
+                user = await con.QueryFirstOrDefaultAsync<UserDto>(verifyCmd, verifyParams);
+            }
+            catch (Exception e)
+            {
+                throw new HttpStatusCodeException(HttpStatusCode.InternalServerError,
+                    "Error while reading user by verify number", e);
+            }
+
             if (user == null)
                 throw new HttpStatusCodeException(HttpStatusCode.BadRequest, "User to verify not found");
-            if (user.Verified == null)
-                throw new HttpStatusCodeException(HttpStatusCode.Conflict, "User already verified");
-            if (user.Verified != verifyToken)
-                throw new HttpStatusCodeException(HttpStatusCode.BadRequest, "Invalid verify guid send");
             const string cmd = "UPDATE \"user\" SET verified=null WHERE userid=:userId";
             var parameter = new DynamicParameters(new
             {
-                userId
+                user.UserId
             });
             try
             {
@@ -191,7 +208,7 @@ namespace Barforce_Backend.Repository
             }
             catch (SqlException e)
             {
-                throw new HttpStatusCodeException(HttpStatusCode.InternalServerError, "Error while verifing");
+                throw new HttpStatusCodeException(HttpStatusCode.InternalServerError, "Error while verifying",e);
             }
         }
 
@@ -209,7 +226,7 @@ namespace Barforce_Backend.Repository
             }
             catch (SqlException e)
             {
-                throw new HttpStatusCodeException(HttpStatusCode.InternalServerError,"Error while logging off",e);
+                throw new HttpStatusCodeException(HttpStatusCode.InternalServerError, "Error while logging off", e);
             }
         }
 
@@ -251,6 +268,32 @@ namespace Barforce_Backend.Repository
                 throw new HttpStatusCodeException(HttpStatusCode.InternalServerError,
                     "Error while reading user by userId", e);
             }
+        }
+
+        private async Task<int> GetUserValidationNumber()
+        {
+            var rnd = new Random();
+            const string checkCmd = "SELECT userId FROM \"user\" WHERE verified=:rndNumber";
+            for (var maxTries = 0; maxTries < 10; maxTries++)
+            {
+                var rndNumber = rnd.Next(10000, 99999);
+                try
+                {
+                    using var con = await _dbHelper.GetConnection();
+                    if (await con.ExecuteScalarAsync<int?>(checkCmd, new
+                    {
+                        rndNumber
+                    }) == null)
+                        return rndNumber;
+                }
+                catch (SqlException e)
+                {
+                    throw new HttpStatusCodeException(HttpStatusCode.InternalServerError,
+                        "Error while creating rnd verifier", e);
+                }
+            }
+
+            throw new HttpStatusCodeException(HttpStatusCode.Conflict, "Could not get rnd num after 10 tries");
         }
     }
 }

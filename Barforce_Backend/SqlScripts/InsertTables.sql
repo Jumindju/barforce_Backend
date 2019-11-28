@@ -1,4 +1,4 @@
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+﻿CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 CREATE TABLE "user"(
     UserId SERIAL PRIMARY KEY,
@@ -10,7 +10,7 @@ CREATE TABLE "user"(
     Salt CHAR(16) NOT NULL,
     Groups smallint NOT NULL DEFAULT 0,
     Gender BOOLEAN NOT NULL,
-    Verified int NULL DEFAULT uuid_generate_v4(),
+    Verified uuid NULL DEFAULT uuid_generate_v4(),
     CurrentToken uuid NULL,
     CreationTime timestamp default now(),
     DeleteTime timestamp NULL

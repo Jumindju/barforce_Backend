@@ -1,4 +1,5 @@
 using Barforce_Backend.Model.Websocket;
+using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
@@ -11,10 +12,14 @@ namespace Barforce_Backend.WebSockets
 {
     public class MachineHandler : WebSocketHandler
     {
-
         List<MachineQueue> machineMessages = new List<MachineQueue>();
         Dictionary<string, int> connections = new Dictionary<string, int>();
-        public MachineHandler(WebSocketConnectionManager webSocketConnectionManager) : base(webSocketConnectionManager) { }
+        private readonly ILogger _logger;
+
+        public MachineHandler(WebSocketConnectionManager webSocketConnectionManager, ILoggerFactory loggerFactory) : base(webSocketConnectionManager)
+        {
+            _logger = loggerFactory.CreateLogger<MachineHandler>();
+        }
         public override async Task ReceiveAsync(WebSocket socket, WebSocketReceiveResult result, byte[] buffer)
         {
             string messageString = Encoding.UTF8.GetString(buffer, 0, result.Count);
@@ -25,7 +30,7 @@ namespace Barforce_Backend.WebSockets
             }
             catch
             {
-                Console.WriteLine("Invalid Adruino Message: " + messageString);
+                _logger.LogError("Invalid Adruino Message: " + messageString);
             }
             if (message != null)
             {
@@ -38,11 +43,12 @@ namespace Barforce_Backend.WebSockets
                         string tmpSocketId = connections.FirstOrDefault(x => x.Value == dbId).Key;
                         if (tmpSocketId != null)
                         {
-                            Console.WriteLine("Machine already inited: " + dbId);
+                            _logger.LogError("Machine already inited: " + dbId);
                         }
                         else
                         {
                             connections.Add(socketId, dbId);
+                            _logger.LogInformation("init Machine: " + dbId);
                         }
                         MachineQueue queue = machineMessages.Find(x => x.DBId == dbId);
                         if (queue == null)
@@ -69,8 +75,9 @@ namespace Barforce_Backend.WebSockets
                 }
             }
         }
-        public override async Task SendMessageToMachine(int machineId, string message)
+        public override async Task<int> SendMessageToMachine(int machineId, List<DrinkCommand> _message)
         {
+            string message = _message.ToString();
             if (!string.IsNullOrEmpty(message))
             {
                 string socketId = connections.FirstOrDefault(x => x.Value == machineId).Key;
@@ -82,16 +89,18 @@ namespace Barforce_Backend.WebSockets
                     {
                         await SendMessageAsync(socketId, message);
                     }
+                    return queue.Messages.Count - 1; // Position in Warteschlange
                 }
                 else
                 {
-                    Console.WriteLine("Cannot Get SocketId by machineId: " + machineId + " ,Message: " + message);
+                    _logger.LogError("Cannot Get SocketId by machineId: " + machineId + " ,Message: " + message);
                 }
             }
             else
             {
-                Console.WriteLine("Invalid Message: " + message);
+                _logger.LogError("Invalid Message: " + message);
             }
+            return -1;
         }
         public override async Task OnDisconnected(WebSocket socket)
         {
@@ -100,7 +109,7 @@ namespace Barforce_Backend.WebSockets
             if (connections.TryGetValue(socketId, out int dbId))
             {
                 connections.Remove(socketId);
-                Console.WriteLine("Machine Disconnected (DBId): " + dbId);
+                _logger.LogInformation("Machine Disconnected (DBId): " + dbId);
             }
         }
     }

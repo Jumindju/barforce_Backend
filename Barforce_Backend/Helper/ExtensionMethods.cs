@@ -34,7 +34,7 @@ namespace Barforce_Backend.Helper
                 ValidateLifetime = false,
                 IssuerSigningKey = new SymmetricSecurityKey(key)
             };
-            var claims = handler.ValidateToken(bearerToken, validations, out var userToken);
+            var claims = handler.ValidateToken(bearerToken, validations, out _);
 
             var validationUser = new TokenUser();
             var userIdClaim = claims.FindFirst("userId")?.Value;
@@ -47,7 +47,20 @@ namespace Barforce_Backend.Helper
             if (int.TryParse(expClaim, out var expDate))
                 validationUser.Exp = expDate;
             return validationUser;
+        }
 
+        public static string[] GetBasicAuth(this Microsoft.AspNetCore.Http.HttpRequest request)
+        {
+            var header = request.Headers["Authorization"];
+            if (header.Count == 0)
+                throw new InvalidOperationException("No Auth header supplied");
+            var baseAuth = header.ToString().Substring(6);
+            var encryptedAuth = Convert.FromBase64String(baseAuth);
+            var authString = Encoding.UTF8.GetString(encryptedAuth);
+            var split = authString.Split(":", StringSplitOptions.RemoveEmptyEntries);
+            if (split.Length != 2)
+                throw new IndexOutOfRangeException("Invalid auth string");
+            return split;
         }
     }
 }

@@ -1,14 +1,12 @@
 using Barforce_Backend.Interface.Helper;
-using Barforce_Backend.Model.Helper.Database;
 using Microsoft.Extensions.Options;
 using Npgsql;
 using System;
-using System.Collections.Generic;
 using System.Data;
-using System.Linq;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
+using Barforce_Backend.Model.Configuration;
 using Barforce_Backend.Model.Helper.Middleware;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Hosting;
@@ -50,7 +48,6 @@ namespace Barforce_Backend.Helper
 
         private static string PostgresUriToConString(string postgresUri)
         {
-            var remove = postgresUri = postgresUri.Remove(0, postgresUri.IndexOf("://", StringComparison.Ordinal));
             var conStringInformation = postgresUri.Split(new[] {':', '@', '/'}, StringSplitOptions.RemoveEmptyEntries);
             return $"UserName={conStringInformation[0]};Password={conStringInformation[1]};Host={conStringInformation[2]};Database={conStringInformation[4]}";
         }

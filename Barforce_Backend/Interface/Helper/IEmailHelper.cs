@@ -1,10 +1,9 @@
-﻿using System;
-using System.Threading.Tasks;
+﻿using System.Threading.Tasks;
 
 namespace Barforce_Backend.Interface.Helper
 {
     public interface IEmailHelper
     {
-        Task SendVerifyMail(string receiverAddress, Guid verifyGuid);
+        Task SendVerifyMail(string receiverAddress, int verifyNum);
     }
 }
