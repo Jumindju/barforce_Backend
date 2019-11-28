@@ -34,7 +34,7 @@ CREATE TABLE "order"(
     UserId INT REFERENCES "user"(UserId),
     DrinkId INT REFERENCES Drink(Id),
     OrderDate timestamp without time zone default (now() at time zone 'utc'),
-    ServeTime timestamp without time zone default (now() at time zone 'utc')
+    ServeTime timestamp without time zone NULL
 );
 
 CREATE TABLE Ingredient(
