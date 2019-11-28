@@ -11,6 +11,6 @@ namespace Barforce_Backend.Interface.Repositories
         Task<int> CreateOrder(int userId, int machineId, CreateDrink newDrink);
         Task<int> AddFavourite(int userId, NewFavouriteDrink newNewFavourite);
         Task<List<FavouriteDrink>> GetFavouriteDrinks(int userId);
-        Task DeleteFavouriteDrink(int userId, int drinkId);
+        Task RemoveFavouriteDrink(int userId, int drinkId);
     }
 }

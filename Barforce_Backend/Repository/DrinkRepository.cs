@@ -185,9 +185,27 @@ namespace Barforce_Backend.Repository
             return favouriteDrinks;
         }
 
-        public Task DeleteFavouriteDrink(int userId, int drinkId)
+        public async Task RemoveFavouriteDrink(int userId, int drinkId)
         {
-            throw new NotImplementedException();
+            if (!await FavoriteDrinkExists(userId, drinkId))
+                throw new HttpStatusCodeException(HttpStatusCode.BadRequest, "Favorite drink doesnt exists");
+            const string cmd =
+                "UPDATE favouriteDrink SET deletetime=current_timestamp WHERE drinkid=:drinkId AND userid=:userId";
+            var parameter = new DynamicParameters(new
+            {
+                drinkId,
+                userId
+            });
+            try
+            {
+                var con = await _dbHelper.GetConnection();
+                await con.ExecuteAsync(cmd, parameter);
+            }
+            catch (Exception e)
+            {
+                throw new HttpStatusCodeException(HttpStatusCode.InternalServerError,
+                    "Error while removing favorite drink", e);
+            }
         }
 
         private async Task<bool> FavoriteDrinkExists(int userId, int drinkId)
@@ -224,6 +242,8 @@ namespace Barforce_Backend.Repository
             if (machineId != null)
                 await CheckContainer(machineId.Value, newDrink);
 
+            if (newDrink.Ingredients.Any(ingredient => ingredient.IngredientId == 0))
+                throw new HttpStatusCodeException(HttpStatusCode.BadRequest, "Invalid ingredient send");
             if (newDrink.Ingredients.Sum(ingredient => ingredient.Amount) > 100)
                 throw new HttpStatusCodeException(HttpStatusCode.BadRequest,
                     "Maximum total 100 percent per drink allowed");
@@ -286,7 +306,7 @@ namespace Barforce_Backend.Repository
                 throw new HttpStatusCodeException(HttpStatusCode.InternalServerError, "Error while inserting drink", e);
             }
 
-            const string insertIngredientsCmd = @"INSERT INTO public.drink2liquid
+            const string insertIngredientsCmd = @"INSERT INTO drink2liquid
                                                 (ingredientid, drinkid, amount)
                                                 VALUES 
                                                 (:ingredientId,:drinkId,:amount)";

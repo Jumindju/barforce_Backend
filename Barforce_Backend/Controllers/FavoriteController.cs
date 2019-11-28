@@ -40,5 +40,13 @@ namespace Barforce_Backend.Controllers
                 drinkId = await _drinkRepository.AddFavourite(user.UserId, newNewFavourite)
             });
         }
+
+        [HttpDelete("{drinkId:int}")]
+        public async Task<IActionResult> RemoveFavorite([FromRoute]int drinkId)
+        {
+            var user = HttpContext.GetTokenUser();
+            await _drinkRepository.RemoveFavouriteDrink(user.UserId, drinkId);
+            return Ok();
+        }
     }
 }

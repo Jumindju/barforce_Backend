@@ -26,7 +26,7 @@ namespace Barforce_Backend.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> CreateDrink([FromRoute] int machineId, [FromBody] CreateDrink newDrink)
+        public async Task<IActionResult> OrderDrink([FromRoute] int machineId, [FromBody] CreateDrink newDrink)
         {
             if (machineId == 0)
                 return BadRequest(new ErrorResponse
