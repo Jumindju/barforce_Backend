@@ -1,4 +1,5 @@
-﻿using System.Threading.Tasks;
+﻿using System.Linq;
+using System.Threading.Tasks;
 using Barforce_Backend.Helper;
 using Barforce_Backend.Interface.Repositories;
 using Barforce_Backend.Model.Drink;
@@ -9,7 +10,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace Barforce_Backend.Controllers
 {
     [Authorize]
-    [Route("api/{machineId:int}/drink")]
+    [Route("api/drink")]
     public class DrinkController : Controller
     {
         private readonly IDrinkRepository _drinkRepository;
@@ -25,7 +26,17 @@ namespace Barforce_Backend.Controllers
             return Ok(await _drinkRepository.ReadGlassSizes());
         }
 
-        [HttpPost]
+        [HttpGet("history")]
+        public async Task<IActionResult> ReadHistory([FromQuery] int? take, [FromQuery] int? skip)
+        {
+            var user = HttpContext.GetTokenUser();
+            var history = await _drinkRepository.ReadUsersHistory(user.UserId, take ?? 10, skip ?? 0);
+            if (history.Any())
+                return Ok(history);
+            return NoContent();
+        }
+
+        [HttpPost("{machineId:int}")]
         public async Task<IActionResult> OrderDrink([FromRoute] int machineId, [FromBody] CreateDrink newDrink)
         {
             if (machineId == 0)

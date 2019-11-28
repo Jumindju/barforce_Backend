@@ -8,6 +8,7 @@ using Barforce_Backend.Interface.Helper;
 using Barforce_Backend.Interface.Repositories;
 using Barforce_Backend.Model.Drink;
 using Barforce_Backend.Model.Drink.Favourite;
+using Barforce_Backend.Model.Drink.Overview;
 using Barforce_Backend.Model.Helper.Middleware;
 using Barforce_Backend.Model.Ingredient;
 using Dapper;
@@ -23,6 +24,46 @@ namespace Barforce_Backend.Repository
         {
             _dbHelper = dbHelper;
             _containerRepo = containerRepo;
+        }
+
+        public async Task<List<OverviewDrink>> ReadUsersHistory(int userId, int take, int skip)
+        {
+            List<OverviewDrink> drinkHistory;
+            const string cmd = @"SELECT drinkid,
+                                       orderdate,
+                                       servetime,
+                                       size as glassSize
+                                FROM ""order""
+                                            JOIN vidrink d on drinkid = d.id
+                                WHERE
+                                    userId=:userId
+                                ORDER BY
+                                    orderdate desc
+                                OFFSET :skip LIMIT :take";
+            var parameter = new DynamicParameters(new
+            {
+                userId,
+                skip,
+                take
+            });
+            try
+            {
+                using var con = await _dbHelper.GetConnection();
+                var drinkHistoryRaw = await con.QueryAsync<OverviewDrink>(cmd,parameter);
+                drinkHistory = drinkHistoryRaw.ToList();
+            }
+            catch (Exception e)
+            {
+                throw new HttpStatusCodeException(HttpStatusCode.InternalServerError,
+                    "Error while reading users order history", e);
+            }
+
+            foreach (var drink in drinkHistory)
+            {
+                drink.Ingredients = await GetIngredientsOfDrink(drink.DrinkId);
+            }
+
+            return drinkHistory;
         }
 
         public async Task<IEnumerable<GlassSize>> ReadGlassSizes()
@@ -154,6 +195,16 @@ namespace Barforce_Backend.Repository
                     "Error while getting favourite drinks", e);
             }
 
+            foreach (var favouriteDrink in favouriteDrinks)
+            {
+                favouriteDrink.Ingredients = await GetIngredientsOfDrink(favouriteDrink.DrinkId);
+            }
+
+            return favouriteDrinks;
+        }
+
+        private async Task<List<DrinkIngredient>> GetIngredientsOfDrink(int drinkId)
+        {
             const string favDrinkIngredientsCmd = @"SELECT 
                                                            id   as ingredientId,
                                                            amount,
@@ -163,26 +214,21 @@ namespace Barforce_Backend.Repository
                                                     FROM drink2liquid
                                                              join viingredient on ingredientid = id
                                                     WHERE drinkid = :drinkid";
-            foreach (var favouriteDrink in favouriteDrinks)
+            var drinkParams = new DynamicParameters(new
             {
-                var drinkParams = new DynamicParameters(new
-                {
-                    favouriteDrink.DrinkId
-                });
-                try
-                {
-                    using var con = await _dbHelper.GetConnection();
-                    var ingredientsOfDrink = await con.QueryAsync<DrinkIngredient>(favDrinkIngredientsCmd, drinkParams);
-                    favouriteDrink.Ingredients = ingredientsOfDrink.ToList();
-                }
-                catch (Exception e)
-                {
-                    throw new HttpStatusCodeException(HttpStatusCode.InternalServerError,
-                        "Error while getting ingredients of favourite drink", e);
-                }
+                drinkId
+            });
+            try
+            {
+                using var con = await _dbHelper.GetConnection();
+                var ingredientsOfDrink = await con.QueryAsync<DrinkIngredient>(favDrinkIngredientsCmd, drinkParams);
+                return ingredientsOfDrink.ToList();
             }
-
-            return favouriteDrinks;
+            catch (Exception e)
+            {
+                throw new HttpStatusCodeException(HttpStatusCode.InternalServerError,
+                    "Error while getting ingredients of favourite drink", e);
+            }
         }
 
         public async Task RemoveFavouriteDrink(int userId, int drinkId)
