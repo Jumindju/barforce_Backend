@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IdentityModel.Tokens.Jwt;
 using System.Net;
+using System.Security.Claims;
 using System.Text;
 using Barforce_Backend.Model.Helper.Middleware;
 using Barforce_Backend.Model.User;
@@ -34,7 +35,15 @@ namespace Barforce_Backend.Helper
                 ValidateLifetime = false,
                 IssuerSigningKey = new SymmetricSecurityKey(key)
             };
-            var claims = handler.ValidateToken(bearerToken, validations, out _);
+            ClaimsPrincipal claims;
+            try
+            {
+                claims = handler.ValidateToken(bearerToken, validations, out _);
+            }
+            catch (Exception e)
+            {
+                throw new HttpStatusCodeException(HttpStatusCode.Unauthorized, "Invalid token send", e);
+            }
 
             var validationUser = new TokenUser();
             var userIdClaim = claims.FindFirst("userId")?.Value;
@@ -49,7 +58,7 @@ namespace Barforce_Backend.Helper
             return validationUser;
         }
 
-        public static string[] GetBasicAuth(this Microsoft.AspNetCore.Http.HttpRequest request)
+        public static string[] GetBasicAuth(this HttpRequest request)
         {
             var header = request.Headers["Authorization"];
             if (header.Count == 0)
