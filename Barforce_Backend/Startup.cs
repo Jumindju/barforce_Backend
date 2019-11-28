@@ -11,7 +11,9 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Barforce_Backend.WebSockets;
 using Microsoft.IdentityModel.Tokens;
+using System;
 
 namespace Barforce_Backend
 {
@@ -43,6 +45,8 @@ namespace Barforce_Backend
             services.AddScoped<IUserRepository, UserRepository>();
             services.AddScoped<IContainerRepo, ContainerRepo>();
             services.AddScoped<IDrinkRepository, DrinkRepository>();
+
+            services.AddWebSocketManager();
 
             var jwtOptions = Configuration.GetSection("JwtOptions").Get<JwtOptions>();
             var symmetricSecurityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtOptions.Secret));
@@ -78,6 +82,18 @@ namespace Barforce_Backend
                     .AllowAnyMethod()
                     .AllowAnyHeader();
             });
+
+            var wsOptions = new WebSocketOptions()
+            {
+                KeepAliveInterval = TimeSpan.FromSeconds(60),
+                ReceiveBufferSize = 4 * 1024
+            };
+            var serviceScopeFactory = app.ApplicationServices.GetRequiredService<IServiceScopeFactory>();
+            var serviceProvider = serviceScopeFactory.CreateScope().ServiceProvider;
+
+            app.UseWebSockets(wsOptions);
+            app.MapWebSocketManager("/machine", serviceProvider.GetService<MachineHandler>());
+            app.UseStaticFiles();
 
             app.UseAuthentication();
             app.UseAuthorization();
