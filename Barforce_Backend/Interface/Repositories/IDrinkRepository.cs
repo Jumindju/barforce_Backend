@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Threading.Tasks;
 using Barforce_Backend.Model.Drink;
-using Barforce_Backend.Model.Drink.Favorite;
+using Barforce_Backend.Model.Drink.Favourite;
 
 namespace Barforce_Backend.Interface.Repositories
 {
@@ -9,8 +9,8 @@ namespace Barforce_Backend.Interface.Repositories
     {
         Task<IEnumerable<GlassSize>> ReadGlassSizes();
         Task<int> CreateOrder(int userId, int machineId, CreateDrink newDrink);
-        Task<int> AddFavorite(int userId, NewFavoriteDrink newNewFavorite);
-        Task<List<FavoriteDrink>> GetFavoriteDrinks(int userId);
-        Task DeleteFavoriteDrink(int userId, int drinkId);
+        Task<int> AddFavourite(int userId, NewFavouriteDrink newNewFavourite);
+        Task<List<FavouriteDrink>> GetFavouriteDrinks(int userId);
+        Task DeleteFavouriteDrink(int userId, int drinkId);
     }
 }

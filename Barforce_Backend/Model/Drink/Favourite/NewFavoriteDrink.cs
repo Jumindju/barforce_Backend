@@ -1,8 +1,8 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace Barforce_Backend.Model.Drink.Favorite
+namespace Barforce_Backend.Model.Drink.Favourite
 {
-    public class NewFavoriteDrink : CreateDrink
+    public class NewFavouriteDrink : CreateDrink
     {
         [StringLength(64)]
         public string Name { get; set; }

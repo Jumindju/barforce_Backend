@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 using Barforce_Backend.Interface.Helper;
 using Barforce_Backend.Interface.Repositories;
 using Barforce_Backend.Model.Drink;
-using Barforce_Backend.Model.Drink.Favorite;
+using Barforce_Backend.Model.Drink.Favourite;
 using Barforce_Backend.Model.Helper.Middleware;
 using Barforce_Backend.Model.Ingredient;
 using Dapper;
@@ -91,13 +91,13 @@ namespace Barforce_Backend.Repository
             return drinksInQueue;
         }
 
-        public async Task<int> AddFavorite(int userId, NewFavoriteDrink newNewFavorite)
+        public async Task<int> AddFavourite(int userId, NewFavouriteDrink newNewFavourite)
         {
-            if (string.IsNullOrEmpty(newNewFavorite?.Name))
-                throw new HttpStatusCodeException(HttpStatusCode.BadRequest, "No favorite name");
-            var drinkId = await GetDrink(newNewFavorite);
+            if (string.IsNullOrEmpty(newNewFavourite?.Name))
+                throw new HttpStatusCodeException(HttpStatusCode.BadRequest, "No favourite name");
+            var drinkId = await GetDrink(newNewFavourite);
 
-            const string cmd = @"INSERT INTO favoritedrink
+            const string cmd = @"INSERT INTO favouritedrink
                                 (
                                     userid, drinkid, ""name""                                
                                 )
@@ -110,7 +110,7 @@ namespace Barforce_Backend.Repository
             {
                 userId,
                 drinkId,
-                drinkName = newNewFavorite.Name
+                drinkName = newNewFavourite.Name
             });
             try
             {
@@ -119,13 +119,13 @@ namespace Barforce_Backend.Repository
             }
             catch (Exception e)
             {
-                throw new HttpStatusCodeException(HttpStatusCode.InternalServerError, "Error while adding favorite", e);
+                throw new HttpStatusCodeException(HttpStatusCode.InternalServerError, "Error while adding favourite", e);
             }
 
             return drinkId;
         }
 
-        public async Task<List<FavoriteDrink>> GetFavoriteDrinks(int userId)
+        public async Task<List<FavouriteDrink>> GetFavouriteDrinks(int userId)
         {
             const string getDrinksCmd = @"SELECT 
                                                 userid,
@@ -133,23 +133,23 @@ namespace Barforce_Backend.Repository
                                                 glasssize,
                                                 glasssizeid,
                                                 ""name""
-                                            from vifavoritedrink
+                                            from vifavouritedrink
                                             where userid=:userid";
             var getDrinksParameter = new DynamicParameters(new
             {
                 userId
             });
-            List<FavoriteDrink> favoriteDrinks;
+            List<FavouriteDrink> favouriteDrinks;
             try
             {
                 using var con = await _dbHelper.GetConnection();
-                var favDrinksRaw = await con.QueryAsync<FavoriteDrink>(getDrinksCmd, getDrinksParameter);
-                favoriteDrinks = favDrinksRaw.ToList();
+                var favDrinksRaw = await con.QueryAsync<FavouriteDrink>(getDrinksCmd, getDrinksParameter);
+                favouriteDrinks = favDrinksRaw.ToList();
             }
             catch (Exception e)
             {
                 throw new HttpStatusCodeException(HttpStatusCode.InternalServerError,
-                    "Error while getting favorite drinks", e);
+                    "Error while getting favourite drinks", e);
             }
 
             const string favDrinkIngredientsCmd = @"SELECT 
@@ -161,29 +161,29 @@ namespace Barforce_Backend.Repository
                                                     FROM drink2liquid
                                                              join viingredient on ingredientid = id
                                                     WHERE drinkid = :drinkid";
-            foreach (var favoriteDrink in favoriteDrinks)
+            foreach (var favouriteDrink in favouriteDrinks)
             {
                 var drinkParams = new DynamicParameters(new
                 {
-                    favoriteDrink.DrinkId
+                    favouriteDrink.DrinkId
                 });
                 try
                 {
                     using var con = await _dbHelper.GetConnection();
                     var ingredientsOfDrink = await con.QueryAsync<DrinkIngredient>(favDrinkIngredientsCmd, drinkParams);
-                    favoriteDrink.Ingredients = ingredientsOfDrink.ToList();
+                    favouriteDrink.Ingredients = ingredientsOfDrink.ToList();
                 }
                 catch (Exception e)
                 {
                     throw new HttpStatusCodeException(HttpStatusCode.InternalServerError,
-                        "Error while getting ingredients of favorite drink", e);
+                        "Error while getting ingredients of favourite drink", e);
                 }
             }
 
-            return favoriteDrinks;
+            return favouriteDrinks;
         }
 
-        public Task DeleteFavoriteDrink(int userId, int drinkId)
+        public Task DeleteFavouriteDrink(int userId, int drinkId)
         {
             throw new NotImplementedException();
         }

@@ -77,7 +77,7 @@ CREATE TABLE Container
     DeleteTime    timestamp NULL
 );
 
-CREATE TABLE FavoriteDrink
+CREATE TABLE FavouriteDrink
 (
     UserId       INT                         NOT NULL REFERENCES "user" (UserId),
     DrinkId      INT                         NOT NULL REFERENCES drink (id),

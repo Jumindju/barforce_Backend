@@ -58,12 +58,12 @@ FROM container c
      viingredient i on i.id = c.ingredientid
 WHERE c.deletetime IS NULL;
 
-CREATE VIEW viFavoriteDrink AS
+CREATE VIEW viFavouriteDrink AS
 SELECT userid,
        drinkid,
        name,
        size AS GlassSize,
        GlassSizeId
-FROM favoritedrink fd
+FROM favouritedrink fd
          join vidrink d on fd.drinkid = d.id
 WHERE deletetime IS NULL;
