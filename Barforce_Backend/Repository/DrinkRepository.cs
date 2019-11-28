@@ -188,6 +188,26 @@ namespace Barforce_Backend.Repository
             throw new NotImplementedException();
         }
 
+        private async Task<bool> FavoriteDrinkExists(int userId, int drinkId)
+        {
+            var cmd = @"SELECT drinkId FROM vifavouritedrink WHERE drinkId=:drinkId AND userId=:userId";
+            var parameter= new DynamicParameters(new
+            {
+                userId,
+                drinkId
+            });
+            try
+            {
+                var con = await _dbHelper.GetConnection();
+                var drinkExists = await con.ExecuteScalarAsync<int?>(cmd, parameter);
+                return drinkExists != null;
+            }
+            catch (Exception e)
+            {
+                throw new HttpStatusCodeException(HttpStatusCode.InternalServerError,"Error while checking if favorite drink exists",e);
+            }
+        }
+
         private async Task<int> GetDrink(CreateDrink newDrink, int? machineId = null)
         {
             // Validate Input
