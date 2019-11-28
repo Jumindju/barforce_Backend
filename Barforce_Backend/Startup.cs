@@ -30,6 +30,9 @@ namespace Barforce_Backend
         // For more information on how to configure your application, visit https://go.microsoft.com/fwlink/?LinkID=398940
         public void ConfigureServices(IServiceCollection services)
         {
+            services.AddCors();
+            services.AddControllers();
+
             services.Configure<DbSettings>(Configuration.GetSection("DbSettings"));
             services.Configure<JwtOptions>(Configuration.GetSection("JwtOptions"));
             services.Configure<EMailOptions>(Configuration.GetSection("EmailOptions"));
@@ -40,20 +43,24 @@ namespace Barforce_Backend
             services.AddSingleton<IEmailHelper, EMailHelper>();
 
             services.AddScoped<IUserRepository, UserRepository>();
+            services.AddScoped<IContainerRepo, ContainerRepo>();
+            services.AddScoped<IDrinkRepository, DrinkRepository>();
 
             services.AddWebSocketManager();
 
             var jwtOptions = Configuration.GetSection("JwtOptions").Get<JwtOptions>();
             var symmetricSecurityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtOptions.Secret));
-            services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+            services
+                .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                 .AddJwtBearer(options =>
                 {
                     options.TokenValidationParameters = new TokenValidationParameters
                     {
-                        ValidateIssuer = true,
                         ValidateIssuerSigningKey = true,
+                        IssuerSigningKey = symmetricSecurityKey,
+                        ValidateIssuer = true,
                         ValidIssuer = "barforce_tm",
-                        IssuerSigningKey = symmetricSecurityKey
+                        ValidateAudience = false
                     };
                 });
 
@@ -64,10 +71,17 @@ namespace Barforce_Backend
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
         {
-            if (env.IsDevelopment())
+            app.UseHttpStatusCodeExceptionMiddleware();
+            app.UseTokenValidateMiddleware();
+
+            app.UseRouting();
+            app.UseCors(options =>
             {
-                app.UseDeveloperExceptionPage();
-            }
+                options
+                    .AllowAnyOrigin()
+                    .AllowAnyMethod()
+                    .AllowAnyHeader();
+            });
 
             var wsOptions = new WebSocketOptions()
             {
@@ -81,12 +95,9 @@ namespace Barforce_Backend
             app.MapWebSocketManager("/machine", serviceProvider.GetService<MachineHandler>());
             app.UseStaticFiles();
 
+            app.UseAuthentication();
             app.UseAuthorization();
 
-            app.UseHttpStatusCodeExceptionMiddleware();
-            app.UseTokenValidateMiddleware();
-
-            app.UseRouting();
             app.UseEndpoints(endpoints => { endpoints.MapControllers(); });
         }
     }
