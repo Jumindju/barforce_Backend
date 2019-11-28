@@ -7,7 +7,9 @@ using System.Threading.Tasks;
 using Barforce_Backend.Interface.Helper;
 using Barforce_Backend.Interface.Repositories;
 using Barforce_Backend.Model.Drink;
+using Barforce_Backend.Model.Drink.Favourite;
 using Barforce_Backend.Model.Helper.Middleware;
+using Barforce_Backend.Model.Ingredient;
 using Dapper;
 
 namespace Barforce_Backend.Repository
@@ -35,12 +37,12 @@ namespace Barforce_Backend.Repository
 
         public async Task<int> CreateOrder(int userId, int machineId, CreateDrink newDrink)
         {
-            var drinkId = await GetDrink(machineId, newDrink);
+            var drinkId = await GetDrink(newDrink, machineId);
             const string createOrderCmd = @"INSERT INTO ""order""
                                             (
                                              userid,
                                              drinkId
-                                            )
+                                            );
                                             VALUES(
                                                 :userId,
                                                  :drinkId 
@@ -89,7 +91,145 @@ namespace Barforce_Backend.Repository
             return drinksInQueue;
         }
 
-        public async Task<int> GetDrink(int machineId, CreateDrink newDrink)
+        public async Task<int> AddFavourite(int userId, NewFavouriteDrink newNewFavourite)
+        {
+            if (string.IsNullOrEmpty(newNewFavourite?.Name))
+                throw new HttpStatusCodeException(HttpStatusCode.BadRequest, "No favourite name");
+            var drinkId = await GetDrink(newNewFavourite);
+            if (await FavoriteDrinkExists(userId, drinkId))
+                throw new HttpStatusCodeException(HttpStatusCode.NotModified, "Drink is already users favorite");
+            const string cmd = @"INSERT INTO favouritedrink
+                                (
+                                    userid, drinkid, ""name""                                
+                                )
+                                VALUES(
+                                       :userId,
+                                       :drinkId,
+                                       :drinkName
+                                )";
+            var parameter = new DynamicParameters(new
+            {
+                userId,
+                drinkId,
+                drinkName = newNewFavourite.Name
+            });
+            try
+            {
+                using var con = await _dbHelper.GetConnection();
+                await con.ExecuteAsync(cmd, parameter);
+            }
+            catch (Exception e)
+            {
+                throw new HttpStatusCodeException(HttpStatusCode.InternalServerError, "Error while adding favourite",
+                    e);
+            }
+
+            return drinkId;
+        }
+
+        public async Task<List<FavouriteDrink>> GetFavouriteDrinks(int userId)
+        {
+            const string getDrinksCmd = @"SELECT 
+                                                userid,
+                                                drinkid,
+                                                glasssize,
+                                                glasssizeid,
+                                                ""name""
+                                            from vifavouritedrink
+                                            where userid=:userid";
+            var getDrinksParameter = new DynamicParameters(new
+            {
+                userId
+            });
+            List<FavouriteDrink> favouriteDrinks;
+            try
+            {
+                using var con = await _dbHelper.GetConnection();
+                var favDrinksRaw = await con.QueryAsync<FavouriteDrink>(getDrinksCmd, getDrinksParameter);
+                favouriteDrinks = favDrinksRaw.ToList();
+            }
+            catch (Exception e)
+            {
+                throw new HttpStatusCodeException(HttpStatusCode.InternalServerError,
+                    "Error while getting favourite drinks", e);
+            }
+
+            const string favDrinkIngredientsCmd = @"SELECT 
+                                                           id   as ingredientId,
+                                                           amount,
+                                                           name as ingredientName,
+                                                           alcohollevel,
+                                                           background
+                                                    FROM drink2liquid
+                                                             join viingredient on ingredientid = id
+                                                    WHERE drinkid = :drinkid";
+            foreach (var favouriteDrink in favouriteDrinks)
+            {
+                var drinkParams = new DynamicParameters(new
+                {
+                    favouriteDrink.DrinkId
+                });
+                try
+                {
+                    using var con = await _dbHelper.GetConnection();
+                    var ingredientsOfDrink = await con.QueryAsync<DrinkIngredient>(favDrinkIngredientsCmd, drinkParams);
+                    favouriteDrink.Ingredients = ingredientsOfDrink.ToList();
+                }
+                catch (Exception e)
+                {
+                    throw new HttpStatusCodeException(HttpStatusCode.InternalServerError,
+                        "Error while getting ingredients of favourite drink", e);
+                }
+            }
+
+            return favouriteDrinks;
+        }
+
+        public async Task RemoveFavouriteDrink(int userId, int drinkId)
+        {
+            if (!await FavoriteDrinkExists(userId, drinkId))
+                throw new HttpStatusCodeException(HttpStatusCode.BadRequest, "Favorite drink doesnt exists");
+            const string cmd =
+                "UPDATE favouriteDrink SET deletetime=current_timestamp WHERE drinkid=:drinkId AND userid=:userId";
+            var parameter = new DynamicParameters(new
+            {
+                drinkId,
+                userId
+            });
+            try
+            {
+                var con = await _dbHelper.GetConnection();
+                await con.ExecuteAsync(cmd, parameter);
+            }
+            catch (Exception e)
+            {
+                throw new HttpStatusCodeException(HttpStatusCode.InternalServerError,
+                    "Error while removing favorite drink", e);
+            }
+        }
+
+        private async Task<bool> FavoriteDrinkExists(int userId, int drinkId)
+        {
+            const string cmd = @"SELECT drinkId FROM vifavouritedrink WHERE drinkId=:drinkId AND userId=:userId";
+            var parameter = new DynamicParameters(new
+            {
+                userId,
+                drinkId
+            });
+            try
+            {
+                var con = await _dbHelper.GetConnection();
+                var drinkExists = await con.ExecuteScalarAsync<int?>(cmd, parameter);
+                return drinkExists != null;
+            }
+            catch (Exception e)
+            {
+                throw new HttpStatusCodeException(HttpStatusCode.InternalServerError,
+                    "Error while checking if favorite drink exists", e);
+            }
+        }
+
+        private async Task<int> GetDrink(CreateDrink newDrink, int? machineId = null)
         {
             // Validate Input
             if (newDrink == null)
@@ -98,6 +238,22 @@ namespace Barforce_Backend.Repository
                 throw new HttpStatusCodeException(HttpStatusCode.BadRequest, "No ingredients defined");
             if (!await GlassSizeExists(newDrink.GlassSizeId))
                 throw new HttpStatusCodeException(HttpStatusCode.BadRequest, "Glass size doesnt exits");
+
+            if (machineId != null)
+                await CheckContainer(machineId.Value, newDrink);
+
+            if (newDrink.Ingredients.Any(ingredient => ingredient.IngredientId == 0))
+                throw new HttpStatusCodeException(HttpStatusCode.BadRequest, "Invalid ingredient send");
+            if (newDrink.Ingredients.Sum(ingredient => ingredient.Amount) > 100)
+                throw new HttpStatusCodeException(HttpStatusCode.BadRequest,
+                    "Maximum total 100 percent per drink allowed");
+
+            var existingDrinkId = await DrinkAlreadyExists(newDrink);
+            return existingDrinkId ?? await CreateDrink(newDrink);
+        }
+
+        private async Task CheckContainer(int machineId, CreateDrink newDrink)
+        {
             // Check if liquid is in containers
             var currentContainers = await _containerRepo.ReadAll(machineId);
             var drinksInContainers = currentContainers.Select(container => container.IngredientId).ToList();
@@ -108,15 +264,6 @@ namespace Barforce_Backend.Repository
             {
                 throw new HttpStatusCodeException(HttpStatusCode.Conflict, "Ingredient of drink not in container");
             }
-
-            if (newDrink.Ingredients.Sum(ingredient => ingredient.Amount) > 100)
-                throw new HttpStatusCodeException(HttpStatusCode.BadRequest,
-                    "Maximum total 100 percent per drink allowed");
-
-            // TODO: Check if drink was already inserted
-
-            var existingDrinkId = await DrinkAlreadyExists(newDrink);
-            return existingDrinkId ?? await CreateDrink(newDrink);
         }
 
         private async Task<bool> GlassSizeExists(int glassId)
@@ -159,7 +306,7 @@ namespace Barforce_Backend.Repository
                 throw new HttpStatusCodeException(HttpStatusCode.InternalServerError, "Error while inserting drink", e);
             }
 
-            const string insertIngredientsCmd = @"INSERT INTO public.drink2liquid
+            const string insertIngredientsCmd = @"INSERT INTO drink2liquid
                                                 (ingredientid, drinkid, amount)
                                                 VALUES 
                                                 (:ingredientId,:drinkId,:amount)";

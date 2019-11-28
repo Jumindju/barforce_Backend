@@ -1,6 +1,5 @@
 ﻿using System.Threading.Tasks;
 using Barforce_Backend.Helper;
-using Barforce_Backend.Interface.Helper;
 using Barforce_Backend.Interface.Repositories;
 using Barforce_Backend.Model.Drink;
 using Barforce_Backend.Model.Helper.Middleware;
@@ -14,12 +13,10 @@ namespace Barforce_Backend.Controllers
     public class DrinkController : Controller
     {
         private readonly IDrinkRepository _drinkRepository;
-        private readonly ITokenHelper _tokenHelper;
 
-        public DrinkController(IDrinkRepository drinkRepository, ITokenHelper tokenHelper)
+        public DrinkController(IDrinkRepository drinkRepository)
         {
             _drinkRepository = drinkRepository;
-            _tokenHelper = tokenHelper;
         }
 
         [HttpGet("glasses")]
@@ -29,7 +26,7 @@ namespace Barforce_Backend.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> CreateDrink([FromRoute] int machineId, [FromBody] CreateDrink newDrink)
+        public async Task<IActionResult> OrderDrink([FromRoute] int machineId, [FromBody] CreateDrink newDrink)
         {
             if (machineId == 0)
                 return BadRequest(new ErrorResponse

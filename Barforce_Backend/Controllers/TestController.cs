@@ -1,8 +1,5 @@
 using Barforce_Backend.WebSockets;
 using Microsoft.AspNetCore.Mvc;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 
@@ -11,10 +8,10 @@ namespace Barforce_Backend.Controllers
     [Route("api/test")]
     public class TestController : Controller
     {
-        private MachineHandler _machineHandler { get; set; }
+        private MachineHandler MachineHandler { get; set; }
         public TestController(MachineHandler machineHandler)
         {
-            _machineHandler = machineHandler;
+            MachineHandler = machineHandler;
         }
         [Authorize]
         [HttpGet]
@@ -25,7 +22,7 @@ namespace Barforce_Backend.Controllers
         [HttpPost]
         public async Task<IActionResult> TestWebsocketAsync()
         {
-            await _machineHandler.SendMessageToMachine(1, "Hello from Server");
+            await MachineHandler.SendMessageToMachine(1, "Hello from Server");
             return Ok("Send Message to Client");
         }
     }
