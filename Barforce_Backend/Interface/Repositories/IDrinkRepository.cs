@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using Barforce_Backend.Model.Drink;
 using Barforce_Backend.Model.Drink.Favourite;
 using Barforce_Backend.Model.Drink.Overview;
+using Barforce_Backend.Model.Websocket;
 
 namespace Barforce_Backend.Interface.Repositories
 {
@@ -14,5 +15,6 @@ namespace Barforce_Backend.Interface.Repositories
         Task<int> AddFavourite(int userId, NewFavouriteDrink newNewFavourite);
         Task<List<FavouriteDrink>> GetFavouriteDrinks(int userId);
         Task RemoveFavouriteDrink(int userId, int drinkId);
+        Task FinishOrder(int orderId, List<DrinkCommand> drinks);
     }
 }
