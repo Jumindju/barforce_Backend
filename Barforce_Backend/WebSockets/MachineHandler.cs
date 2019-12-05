@@ -86,7 +86,7 @@ namespace Barforce_Backend.WebSockets
         }
         public override async Task<int> SendMessageToMachine(int machineId, int orderId, List<DrinkCommand> _message)
         {
-            string message = _message.ToString();
+            string message = JsonConvert.SerializeObject(_message);
             if (!string.IsNullOrEmpty(message))
             {
                 string socketId = connections.FirstOrDefault(x => x.Value == machineId).Key;
