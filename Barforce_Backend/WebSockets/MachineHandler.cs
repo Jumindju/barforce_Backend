@@ -1,6 +1,7 @@
 using Barforce_Backend.Model.Websocket;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.WebSockets;
@@ -39,20 +40,20 @@ namespace Barforce_Backend.WebSockets
                 {
                     case "init":
                         int.TryParse(message.Data.ToString(), out int dbId);
-                        string tmpSocketId = _connections.FirstOrDefault(x => x.Value == dbId).Key;
+                        string tmpSocketId = connections.FirstOrDefault(x => x.Value == dbId).Key;
                         if (tmpSocketId != null)
                         {
                             _logger.LogError("Machine already inited: " + dbId);
                         }
                         else
                         {
-                            _connections.Add(socketId, dbId);
+                            connections.Add(socketId, dbId);
                             _logger.LogInformation("init Machine: " + dbId);
                         }
-                        MachineQueue queue = _machineMessages.Find(x => x.DbId == dbId);
+                        MachineQueue queue = machineMessages.Find(x => x.DBId == dbId);
                         if (queue == null)
                         {
-                            _machineMessages.Add(new MachineQueue() { DbId = dbId, Messages = new Queue<string>() });
+                            machineMessages.Add(new MachineQueue() { DBId = dbId, Messages = new Queue<string>() });
                         }
                         else if (queue.Messages.Count > 0)
                         {
@@ -61,8 +62,8 @@ namespace Barforce_Backend.WebSockets
                         }
                         break;
                     case "finished":
-                        _connections.TryGetValue(socketId, out int machineId);
-                        MachineQueue queue1 = _machineMessages.Find(x => x.DbId == machineId);
+                        connections.TryGetValue(socketId, out int machineId);
+                        MachineQueue queue1 = machineMessages.Find(x => x.DBId == machineId);
                         queue1.Messages.Dequeue();
                         if (queue1.Messages.Count > 0)
                         {
@@ -70,6 +71,7 @@ namespace Barforce_Backend.WebSockets
                             await SendMessageAsync(socketId, msg);
                         }
                         break;
+                    default: break;
                 }
             }
         }
@@ -78,10 +80,10 @@ namespace Barforce_Backend.WebSockets
             string message = _message.ToString();
             if (!string.IsNullOrEmpty(message))
             {
-                string socketId = _connections.FirstOrDefault(x => x.Value == machineId).Key;
+                string socketId = connections.FirstOrDefault(x => x.Value == machineId).Key;
                 if (socketId != null)
                 {
-                    MachineQueue queue = _machineMessages.Find(x => x.DbId == machineId);
+                    MachineQueue queue = machineMessages.Find(x => x.DBId == machineId);
                     queue.Messages.Enqueue(message);
                     if (queue.Messages.Count == 1)
                     {
@@ -104,9 +106,9 @@ namespace Barforce_Backend.WebSockets
         {
             string socketId = WebSocketConnectionManager.GetId(socket);
             await WebSocketConnectionManager.RemoveSocket(WebSocketConnectionManager.GetId(socket));
-            if (_connections.TryGetValue(socketId, out int dbId))
+            if (connections.TryGetValue(socketId, out int dbId))
             {
-                _connections.Remove(socketId);
+                connections.Remove(socketId);
                 _logger.LogInformation("Machine Disconnected (DBId): " + dbId);
             }
         }

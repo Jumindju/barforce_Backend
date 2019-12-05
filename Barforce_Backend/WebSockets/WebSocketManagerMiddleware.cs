@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Net.WebSockets;
 using System.Threading;
 using System.Threading.Tasks;
@@ -10,13 +12,13 @@ namespace Barforce_Backend.WebSockets
     public class WebSocketManagerMiddleware
     {
         private readonly RequestDelegate _next;
-        private WebSocketHandler WebSocketHandler { get; set; }
+        private WebSocketHandler _webSocketHandler { get; set; }
         private readonly ILogger _logger;
 
         public WebSocketManagerMiddleware(RequestDelegate next, WebSocketHandler webSocketHandler, ILoggerFactory loggerFactory)
         {
             _next = next;
-            WebSocketHandler = webSocketHandler;
+            _webSocketHandler = webSocketHandler;
             _logger = loggerFactory.CreateLogger<WebSocketManagerMiddleware>();
         }
 
@@ -35,14 +37,14 @@ namespace Barforce_Backend.WebSockets
                 _logger.LogInformation($"Websocketiddleware, Invoke, Received Websocket, Result: {result.ToString()}, Buffer: {buffer.ToString()}");
                 if (result.MessageType == WebSocketMessageType.Text)
                 {
-                    await WebSocketHandler.ReceiveAsync(socket, result, buffer);
+                    await _webSocketHandler.ReceiveAsync(socket, result, buffer);
                     _logger.LogInformation($"Websocketiddleware, Invoke, Received Websocket Text");
                     return;
                 }
 
                 else if (result.MessageType == WebSocketMessageType.Close)
                 {
-                    await WebSocketHandler.OnDisconnected(socket);
+                    await _webSocketHandler.OnDisconnected(socket);
                     _logger.LogInformation($"Websocketiddleware, Invoke, Received Websocket Close");
                     return;
                 }
