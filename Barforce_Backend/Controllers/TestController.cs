@@ -1,5 +1,8 @@
 using Barforce_Backend.WebSockets;
 using Microsoft.AspNetCore.Mvc;
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Barforce_Backend.Model.Websocket;
@@ -9,14 +12,14 @@ namespace Barforce_Backend.Controllers
     [Route("api/test")]
     public class TestController : Controller
     {
-        private MachineHandler MachineHandler { get; set; }
+        private MachineHandler _machineHandler { get; set; }
         public TestController(MachineHandler machineHandler)
         {
-            MachineHandler = machineHandler;
+            _machineHandler = machineHandler;
         }
         [Authorize]
         [HttpGet]
-        public  IActionResult Test()
+        public IActionResult Test()
         {
             return Ok("Hello World");
         }
