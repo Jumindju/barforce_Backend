@@ -44,6 +44,7 @@ namespace Barforce_Backend
             services.AddScoped<IUserRepository, UserRepository>();
             services.AddScoped<IContainerRepo, ContainerRepo>();
             services.AddScoped<IDrinkRepository, DrinkRepository>();
+            services.AddSingleton<IFinishOrderRepository, FinishOrderRepository>();
 
             services.AddWebSocketManager();
 

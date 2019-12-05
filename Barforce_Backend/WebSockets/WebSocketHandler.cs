@@ -44,6 +44,6 @@ namespace Barforce_Backend.WebSockets
         }
 
         public abstract Task ReceiveAsync(WebSocket socket, WebSocketReceiveResult result, byte[] buffer);
-        public abstract Task<int> SendMessageToMachine(int machineId, List<DrinkCommand> _message);
+        public abstract Task<int> SendMessageToMachine(int machineId, int orderId, List<DrinkCommand> _message);
     }
 }

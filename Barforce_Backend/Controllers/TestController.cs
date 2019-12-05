@@ -33,8 +33,8 @@ namespace Barforce_Backend.Controllers
                 new DrinkCommand(){Id=3,AmmountMl=100},
                 new DrinkCommand(){Id=4,AmmountMl=0}
             };
-
-            int queuePosition = await _machineHandler.SendMessageToMachine(1, msg); // 0 = dran, 1 = als nächstes ...
+            int orderId = 1;
+            int queuePosition = await _machineHandler.SendMessageToMachine(1, orderId, msg); // 0 = dran, 1 = als nächstes ...
             return Ok($"Send Message to Client, QueuePosition: {queuePosition}");
         }
     }
