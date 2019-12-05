@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Data.SqlClient;
 using System.Linq;
@@ -113,7 +113,7 @@ namespace Barforce_Backend.Repository
                 throw new HttpStatusCodeException(HttpStatusCode.InternalServerError, "Could not create drink", e);
             }
 
-            return await _machineHandler.SendMessageToMachine(machineId, drinkCmd);
+            return await _machineHandler.SendMessageToMachine(machineId, orderId, drinkCmd);
         }
 
         public async Task<int> AddFavourite(int userId, NewFavouriteDrink newNewFavourite)
@@ -185,42 +185,6 @@ namespace Barforce_Backend.Repository
             }
 
             return favouriteDrinks;
-        }
-
-        public async Task FinishOrder(int orderId, List<DrinkCommand> drinks)
-        {
-            const string setServeTimeCmd = @"
-                UPDATE ""order"" 
-                SET servetime=:serveTime 
-                WHERE id=:id";
-            var serveParameter = new DynamicParameters(new
-            {
-                id = orderId,
-                serveTime = DateTime.UtcNow
-            });
-            try
-            {
-                using var con = await _dbHelper.GetConnection();
-                await con.ExecuteAsync(setServeTimeCmd, serveParameter);
-            }
-            catch (Exception e)
-            {
-                throw new HttpStatusCodeException(HttpStatusCode.InternalServerError, "Could not set serveTime", e);
-            }
-
-            const string updateFillingCmd = @"UPDATE container
-                                                SET fillinglevel=fillinglevel-:amount
-                                                WHERE id=:id";
-            foreach (var parameter in drinks.Select(drink =>
-                new DynamicParameters(new
-                {
-                    Amount = drink.AmmountMl,
-                    drink.Id
-                })))
-            {
-                using var con = await _dbHelper.GetConnection();
-                await con.ExecuteAsync(updateFillingCmd, parameter);
-            }
         }
 
         private async Task<List<DrinkIngredient>> GetIngredientsOfDrink(int drinkId)

@@ -1,3 +1,4 @@
+using Barforce_Backend.Interface.Repositories;
 using Barforce_Backend.Model.Websocket;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
@@ -12,13 +13,17 @@ namespace Barforce_Backend.WebSockets
 {
     public class MachineHandler : WebSocketHandler
     {
+        int lastOrderId;
+        List<DrinkCommand> lastCommand = new List<DrinkCommand>();
         List<MachineQueue> machineMessages = new List<MachineQueue>();
         Dictionary<string, int> connections = new Dictionary<string, int>();
         private readonly ILogger _logger;
+        private readonly IFinishOrderRepository _finishOrderRepository;
 
-        public MachineHandler(WebSocketConnectionManager webSocketConnectionManager, ILoggerFactory loggerFactory) : base(webSocketConnectionManager)
+        public MachineHandler(WebSocketConnectionManager webSocketConnectionManager, ILoggerFactory loggerFactory,  IFinishOrderRepository finishOrderRepository) : base(webSocketConnectionManager)
         {
             _logger = loggerFactory.CreateLogger<MachineHandler>();
+            _finishOrderRepository = finishOrderRepository;
         }
         public override async Task ReceiveAsync(WebSocket socket, WebSocketReceiveResult result, byte[] buffer)
         {
@@ -62,6 +67,7 @@ namespace Barforce_Backend.WebSockets
                         }
                         break;
                     case "finished":
+                        _finishOrderRepository.FinishOrder(lastOrderId, lastCommand);
                         connections.TryGetValue(socketId, out int machineId);
                         MachineQueue queue1 = machineMessages.Find(x => x.DBId == machineId);
                         queue1.Messages.Dequeue();
@@ -75,7 +81,7 @@ namespace Barforce_Backend.WebSockets
                 }
             }
         }
-        public override async Task<int> SendMessageToMachine(int machineId, List<DrinkCommand> _message)
+        public override async Task<int> SendMessageToMachine(int machineId, int orderId, List<DrinkCommand> _message)
         {
             string message = _message.ToString();
             if (!string.IsNullOrEmpty(message))
@@ -88,6 +94,8 @@ namespace Barforce_Backend.WebSockets
                     if (queue.Messages.Count == 1)
                     {
                         await SendMessageAsync(socketId, message);
+                        lastCommand = _message;
+                        lastOrderId = orderId;
                     }
                     return queue.Messages.Count - 1; // Position in Warteschlange
                 }
