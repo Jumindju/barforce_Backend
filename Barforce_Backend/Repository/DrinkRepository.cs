@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Data.SqlClient;
 using System.Linq;
@@ -49,7 +49,7 @@ namespace Barforce_Backend.Repository
             try
             {
                 using var con = await _dbHelper.GetConnection();
-                var drinkHistoryRaw = await con.QueryAsync<OverviewDrink>(cmd,parameter);
+                var drinkHistoryRaw = await con.QueryAsync<OverviewDrink>(cmd, parameter);
                 drinkHistory = drinkHistoryRaw.ToList();
             }
             catch (Exception e)
@@ -83,7 +83,7 @@ namespace Barforce_Backend.Repository
                                             (
                                              userid,
                                              drinkId
-                                            );
+                                            )
                                             VALUES(
                                                 :userId,
                                                  :drinkId 
@@ -282,7 +282,8 @@ namespace Barforce_Backend.Repository
                 throw new HttpStatusCodeException(HttpStatusCode.BadRequest, "No drink send");
             if (newDrink.Ingredients == null)
                 throw new HttpStatusCodeException(HttpStatusCode.BadRequest, "No ingredients defined");
-            if (!await GlassSizeExists(newDrink.GlassSizeId))
+            var glassSize = await GlassSizeExists(newDrink.GlassSizeId);
+            if (glassSize == null)
                 throw new HttpStatusCodeException(HttpStatusCode.BadRequest, "Glass size doesnt exits");
 
             if (machineId != null)
@@ -312,9 +313,9 @@ namespace Barforce_Backend.Repository
             }
         }
 
-        private async Task<bool> GlassSizeExists(int glassId)
+        private async Task<int?> GlassSizeExists(int glassId)
         {
-            const string cmd = @"SELECT Id FROM glasssize WHERE Id=:glassId";
+            const string cmd = @"SELECT size FROM glasssize WHERE Id=:glassId";
             var parameter = new DynamicParameters(new
             {
                 glassId
@@ -322,7 +323,7 @@ namespace Barforce_Backend.Repository
             try
             {
                 using var con = await _dbHelper.GetConnection();
-                return await con.QueryFirstOrDefaultAsync<int?>(cmd, parameter) != null;
+                return await con.QueryFirstOrDefaultAsync<int?>(cmd, parameter);
             }
             catch (SqlException e)
             {
