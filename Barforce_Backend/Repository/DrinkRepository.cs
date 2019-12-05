@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Data.SqlClient;
 using System.Linq;
@@ -11,6 +11,8 @@ using Barforce_Backend.Model.Drink.Favourite;
 using Barforce_Backend.Model.Drink.Overview;
 using Barforce_Backend.Model.Helper.Middleware;
 using Barforce_Backend.Model.Ingredient;
+using Barforce_Backend.Model.Websocket;
+using Barforce_Backend.WebSockets;
 using Dapper;
 
 namespace Barforce_Backend.Repository
@@ -19,11 +21,13 @@ namespace Barforce_Backend.Repository
     {
         private readonly IDbHelper _dbHelper;
         private readonly IContainerRepo _containerRepo;
+        private readonly MachineHandler _machineHandler;
 
-        public DrinkRepository(IDbHelper dbHelper, IContainerRepo containerRepo)
+        public DrinkRepository(IDbHelper dbHelper, IContainerRepo containerRepo, MachineHandler machineHandler)
         {
             _dbHelper = dbHelper;
             _containerRepo = containerRepo;
+            _machineHandler = machineHandler;
         }
 
         public async Task<List<OverviewDrink>> ReadUsersHistory(int userId, int take, int skip)
@@ -49,7 +53,7 @@ namespace Barforce_Backend.Repository
             try
             {
                 using var con = await _dbHelper.GetConnection();
-                var drinkHistoryRaw = await con.QueryAsync<OverviewDrink>(cmd,parameter);
+                var drinkHistoryRaw = await con.QueryAsync<OverviewDrink>(cmd, parameter);
                 drinkHistory = drinkHistoryRaw.ToList();
             }
             catch (Exception e)
@@ -78,12 +82,16 @@ namespace Barforce_Backend.Repository
 
         public async Task<int> CreateOrder(int userId, int machineId, CreateDrink newDrink)
         {
-            var drinkId = await GetDrink(newDrink, machineId);
+            (int drinkId, int glassSize) = await GetDrink(newDrink);
+
+            var drinkCmd = await CheckContainer(machineId, newDrink);
+            await _containerRepo.IngredientsInContainer(machineId, glassSize, newDrink.Ingredients);
+
             const string createOrderCmd = @"INSERT INTO ""order""
                                             (
                                              userid,
                                              drinkId
-                                            );
+                                            )
                                             VALUES(
                                                 :userId,
                                                  :drinkId 
@@ -105,38 +113,14 @@ namespace Barforce_Backend.Repository
                 throw new HttpStatusCodeException(HttpStatusCode.InternalServerError, "Could not create drink", e);
             }
 
-            //TODO: Call Arduino
-            await Task.Delay(3000);
-            var rnd = new Random();
-            var drinksInQueue = rnd.Next(0, 7);
-
-            const string setServeTimeCmd = @"
-                UPDATE ""order"" 
-                SET servetime=:serveTime 
-                WHERE id=:id";
-            var serveParameter = new DynamicParameters(new
-            {
-                id = orderId,
-                serveTime = DateTime.UtcNow
-            });
-            try
-            {
-                using var con = await _dbHelper.GetConnection();
-                await con.ExecuteAsync(setServeTimeCmd, serveParameter);
-            }
-            catch (Exception e)
-            {
-                throw new HttpStatusCodeException(HttpStatusCode.InternalServerError, "Could not set serveTime", e);
-            }
-
-            return drinksInQueue;
+            return await _machineHandler.SendMessageToMachine(machineId, orderId, drinkCmd);
         }
 
         public async Task<int> AddFavourite(int userId, NewFavouriteDrink newNewFavourite)
         {
             if (string.IsNullOrEmpty(newNewFavourite?.Name))
                 throw new HttpStatusCodeException(HttpStatusCode.BadRequest, "No favourite name");
-            var drinkId = await GetDrink(newNewFavourite);
+            var (drinkId, _) = await GetDrink(newNewFavourite);
             if (await FavoriteDrinkExists(userId, drinkId))
                 throw new HttpStatusCodeException(HttpStatusCode.NotModified, "Drink is already users favorite");
             const string cmd = @"INSERT INTO favouritedrink
@@ -275,18 +259,16 @@ namespace Barforce_Backend.Repository
             }
         }
 
-        private async Task<int> GetDrink(CreateDrink newDrink, int? machineId = null)
+        private async Task<(int drinkId, int glassSize)> GetDrink(CreateDrink newDrink)
         {
             // Validate Input
             if (newDrink == null)
                 throw new HttpStatusCodeException(HttpStatusCode.BadRequest, "No drink send");
             if (newDrink.Ingredients == null)
                 throw new HttpStatusCodeException(HttpStatusCode.BadRequest, "No ingredients defined");
-            if (!await GlassSizeExists(newDrink.GlassSizeId))
+            var glassSize = await GlassSizeExists(newDrink.GlassSizeId);
+            if (glassSize == null)
                 throw new HttpStatusCodeException(HttpStatusCode.BadRequest, "Glass size doesnt exits");
-
-            if (machineId != null)
-                await CheckContainer(machineId.Value, newDrink);
 
             if (newDrink.Ingredients.Any(ingredient => ingredient.IngredientId == 0))
                 throw new HttpStatusCodeException(HttpStatusCode.BadRequest, "Invalid ingredient send");
@@ -295,26 +277,36 @@ namespace Barforce_Backend.Repository
                     "Maximum total 100 percent per drink allowed");
 
             var existingDrinkId = await DrinkAlreadyExists(newDrink);
-            return existingDrinkId ?? await CreateDrink(newDrink);
+            return existingDrinkId != null
+                ? (existingDrinkId.Value, glassSize.Value)
+                : (await CreateDrink(newDrink), glassSize.Value);
         }
 
-        private async Task CheckContainer(int machineId, CreateDrink newDrink)
+        private async Task<List<DrinkCommand>> CheckContainer(int machineId, CreateDrink newDrink)
         {
             // Check if liquid is in containers
-            var currentContainers = await _containerRepo.ReadAll(machineId);
-            var drinksInContainers = currentContainers.Select(container => container.IngredientId).ToList();
-            if (newDrink.Ingredients.Any(ingredient =>
-                !drinksInContainers.Contains(ingredient.IngredientId)
-                || ingredient.Amount < 0
-            ))
+            var currentContainersRaw = await _containerRepo.ReadAll(machineId);
+            var currentContainers = currentContainersRaw.ToList();
+            var drinkCommand = new List<DrinkCommand>();
+            foreach (var ingredient in newDrink.Ingredients)
             {
-                throw new HttpStatusCodeException(HttpStatusCode.Conflict, "Ingredient of drink not in container");
+                var containerOfIngredient =
+                    currentContainers.FirstOrDefault(container => container.IngredientId == ingredient.IngredientId);
+                if (containerOfIngredient == null || ingredient.Amount < 0)
+                    throw new HttpStatusCodeException(HttpStatusCode.Conflict, "Ingredient of drink not in container");
+                drinkCommand.Add(new DrinkCommand
+                {
+                    Id = containerOfIngredient.Id,
+                    AmmountMl = ingredient.IngredientId
+                });
             }
+
+            return drinkCommand;
         }
 
-        private async Task<bool> GlassSizeExists(int glassId)
+        private async Task<int?> GlassSizeExists(int glassId)
         {
-            const string cmd = @"SELECT Id FROM glasssize WHERE Id=:glassId";
+            const string cmd = @"SELECT size FROM glasssize WHERE Id=:glassId";
             var parameter = new DynamicParameters(new
             {
                 glassId
@@ -322,7 +314,7 @@ namespace Barforce_Backend.Repository
             try
             {
                 using var con = await _dbHelper.GetConnection();
-                return await con.QueryFirstOrDefaultAsync<int?>(cmd, parameter) != null;
+                return await con.QueryFirstOrDefaultAsync<int?>(cmd, parameter);
             }
             catch (SqlException e)
             {
