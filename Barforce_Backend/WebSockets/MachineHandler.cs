@@ -64,11 +64,14 @@ namespace Barforce_Backend.WebSockets
                     case "finished":
                         connections.TryGetValue(socketId, out int machineId);
                         MachineQueue queue1 = machineMessages.Find(x => x.DBId == machineId);
-                        queue1.Messages.Dequeue();
-                        if (queue1.Messages.Count > 0)
+                        if (queue1 != null)
                         {
-                            string msg = queue1.Messages.First();
-                            await SendMessageAsync(socketId, msg);
+                            queue1.Messages.Dequeue();
+                            if (queue1.Messages.Count > 0)
+                            {
+                                string msg = queue1.Messages.First();
+                                await SendMessageAsync(socketId, msg);
+                            }
                         }
                         break;
                     default: break;
