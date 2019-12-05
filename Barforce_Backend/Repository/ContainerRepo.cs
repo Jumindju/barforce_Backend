@@ -1,11 +1,15 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
+using System.Data.SqlClient;
+using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
 using Barforce_Backend.Interface.Helper;
 using Barforce_Backend.Interface.Repositories;
 using Barforce_Backend.Model.Container;
 using Barforce_Backend.Model.Helper.Middleware;
+using Barforce_Backend.Model.Ingredient;
 using Dapper;
 
 namespace Barforce_Backend.Repository
@@ -51,9 +55,43 @@ namespace Barforce_Backend.Repository
             }
         }
 
-        public Task<bool> IngredientInContainer(int machineId, List<int> ingredients)
+        public async Task<bool> IngredientsInContainer(int machineId, int glassSize,
+            List<NewDrinkIngredient> ingredients)
         {
-            throw new NotImplementedException();
+            var cmd = $@"SELECT ingredientid
+                                        ,fillinglevel 
+                                FROM container
+                                WHERE 
+                                      machineid=:machineId AND
+                                    ingredientid IN ({string.Join(',', ingredients.Select(ing => ing.IngredientId))})";
+            var parameter = new DynamicParameters(new
+            {
+                machineId,
+            });
+            IEnumerable<(int ingredientId, int fillingLevel)> containerFilling;
+            try
+            {
+                var con = await _dbHelper.GetConnection();
+                containerFilling = await con.QueryAsync<(int, int)>(cmd, parameter);
+            }
+            catch (SqlException e)
+            {
+                throw new HttpStatusCodeException(HttpStatusCode.InternalServerError, "Error while checking container",
+                    e);
+            }
+
+            foreach (var (ingredientId, fillingLevel) in containerFilling)
+            {
+                var ingredient = ingredients.FirstOrDefault(ing => ing.IngredientId == ingredientId);
+                if (ingredient == null)
+                    throw new HttpStatusCodeException(HttpStatusCode.Conflict, "No container has requested ingredient");
+
+                var requestedAmount = glassSize * (ingredient.Amount / 100);
+                if (requestedAmount > fillingLevel)
+                    throw new HttpStatusCodeException(HttpStatusCode.Conflict, "Container does not have enough liquid");
+            }
+
+            return true;
         }
     }
 }

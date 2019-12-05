@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Data.SqlClient;
 using System.Linq;
@@ -287,7 +287,10 @@ namespace Barforce_Backend.Repository
                 throw new HttpStatusCodeException(HttpStatusCode.BadRequest, "Glass size doesnt exits");
 
             if (machineId != null)
+            {
                 await CheckContainer(machineId.Value, newDrink);
+                await _containerRepo.IngredientsInContainer(machineId.Value, glassSize.Value, newDrink.Ingredients);
+            }
 
             if (newDrink.Ingredients.Any(ingredient => ingredient.IngredientId == 0))
                 throw new HttpStatusCodeException(HttpStatusCode.BadRequest, "Invalid ingredient send");
