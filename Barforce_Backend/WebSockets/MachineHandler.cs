@@ -124,7 +124,7 @@ namespace Barforce_Backend.WebSockets
         public override async Task OnDisconnected(WebSocket socket)
         {
             string socketId = WebSocketConnectionManager.GetId(socket);
-            await WebSocketConnectionManager.RemoveSocket(WebSocketConnectionManager.GetId(socket));
+            await WebSocketConnectionManager.RemoveSocket(socketId);
             if (connections.TryGetValue(socketId, out int dbId))
             {
                 connections.Remove(socketId);

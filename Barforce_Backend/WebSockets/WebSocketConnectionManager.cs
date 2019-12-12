@@ -49,7 +49,7 @@ namespace Barforce_Backend.WebSockets
 
         }
 
-        private string CreateConnectionId() // per GeräteId ... erzeugen 
+        private string CreateConnectionId()
         {
             return Guid.NewGuid().ToString();
         }
