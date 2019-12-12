@@ -54,7 +54,9 @@ namespace Barforce_Backend.WebSockets
                         string tmpSocketId = connections.FirstOrDefault(x => x.Value == dbId).Key;
                         if (tmpSocketId != null)
                         {
-                            _logger.LogError("Machine already inited: " + dbId);
+                            _logger.LogError("Machine already inited: " + dbId + " ==> deleto old create new");
+                            connections.Remove(tmpSocketId);
+                            connections.Add(socketId, dbId);
                         }
                         else
                         {
