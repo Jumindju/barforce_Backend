@@ -12,13 +12,13 @@ namespace Barforce_Backend.WebSockets
     public class WebSocketManagerMiddleware
     {
         private readonly RequestDelegate _next;
-        private WebSocketHandler _webSocketHandler { get; set; }
+        private MachineHandler _machineHandler { get; set; }
         private readonly ILogger _logger;
 
-        public WebSocketManagerMiddleware(RequestDelegate next, WebSocketHandler webSocketHandler, ILoggerFactory loggerFactory)
+        public WebSocketManagerMiddleware(RequestDelegate next, MachineHandler machineHandler, ILoggerFactory loggerFactory)
         {
             _next = next;
-            _webSocketHandler = webSocketHandler;
+            _machineHandler = machineHandler;
             _logger = loggerFactory.CreateLogger<WebSocketManagerMiddleware>();
         }
 
@@ -28,19 +28,26 @@ namespace Barforce_Backend.WebSockets
                 return;
 
             var socket = await context.WebSockets.AcceptWebSocketAsync();
-            _webSocketHandler.OnConnected(socket);
+            _machineHandler.OnConnected(socket);
 
             await Receive(socket, async (result, buffer) =>
             {
+                _logger.LogInformation($"Websocketiddleware, Received Websocket MessageStatus: {result.MessageType}");
                 if (result.MessageType == WebSocketMessageType.Text)
                 {
-                    await _webSocketHandler.ReceiveAsync(socket, result, buffer);
+                    await _machineHandler.ReceiveAsync(socket, result, buffer);
                     return;
                 }
 
                 else if (result.MessageType == WebSocketMessageType.Close)
                 {
-                    await _webSocketHandler.OnDisconnected(socket);
+                    await _machineHandler.OnDisconnected(socket);
+                    return;
+                }
+
+                else
+                {
+                    await _machineHandler.OnDisconnected(socket);
                     return;
                 }
 
