@@ -71,7 +71,7 @@ namespace Barforce_Backend.Repository
             IEnumerable<(int ingredientId, int fillingLevel)> containerFilling;
             try
             {
-                var con = await _dbHelper.GetConnection();
+                using var con = await _dbHelper.GetConnection();
                 containerFilling = await con.QueryAsync<(int, int)>(cmd, parameter);
             }
             catch (SqlException e)
