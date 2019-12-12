@@ -24,28 +24,23 @@ namespace Barforce_Backend.WebSockets
 
         public async Task Invoke(HttpContext context)
         {
-            _logger.LogInformation($"Websocketiddleware, Invoke, Context: {context.ToString()}");
             if (!context.WebSockets.IsWebSocketRequest)
                 return;
 
             var socket = await context.WebSockets.AcceptWebSocketAsync();
-            _logger.LogInformation($"Websocketiddleware, Invoke, Accept Websocket, Socket: {socket.ToString()}");
             _webSocketHandler.OnConnected(socket);
 
             await Receive(socket, async (result, buffer) =>
             {
-                _logger.LogInformation($"Websocketiddleware, Invoke, Received Websocket, Result: {result.ToString()}, Buffer: {buffer.ToString()}");
                 if (result.MessageType == WebSocketMessageType.Text)
                 {
                     await _webSocketHandler.ReceiveAsync(socket, result, buffer);
-                    _logger.LogInformation($"Websocketiddleware, Invoke, Received Websocket Text");
                     return;
                 }
 
                 else if (result.MessageType == WebSocketMessageType.Close)
                 {
                     await _webSocketHandler.OnDisconnected(socket);
-                    _logger.LogInformation($"Websocketiddleware, Invoke, Received Websocket Close");
                     return;
                 }
 
@@ -58,7 +53,6 @@ namespace Barforce_Backend.WebSockets
             try
             {
                 var buffer = new byte[1024 * 4];
-                _logger.LogInformation($"Websocketiddleware, Invoke, Receive Websocket, socketState: {socket.State}");
                 while (socket.State == WebSocketState.Open)
                 {
                     var result = await socket.ReceiveAsync(buffer: new ArraySegment<byte>(buffer),
