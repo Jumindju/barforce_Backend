@@ -228,7 +228,7 @@ namespace Barforce_Backend.Repository
             });
             try
             {
-                var con = await _dbHelper.GetConnection();
+                using var con = await _dbHelper.GetConnection();
                 await con.ExecuteAsync(cmd, parameter);
             }
             catch (Exception e)
@@ -248,7 +248,7 @@ namespace Barforce_Backend.Repository
             });
             try
             {
-                var con = await _dbHelper.GetConnection();
+                using var con = await _dbHelper.GetConnection();
                 var drinkExists = await con.ExecuteScalarAsync<int?>(cmd, parameter);
                 return drinkExists != null;
             }
