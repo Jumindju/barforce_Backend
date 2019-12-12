@@ -28,6 +28,7 @@ namespace Barforce_Backend.WebSockets
         public override async Task ReceiveAsync(WebSocket socket, WebSocketReceiveResult result, byte[] buffer)
         {
             string messageString = Encoding.UTF8.GetString(buffer, 0, result.Count);
+            _logger.LogInformation($"Websocketiddleware, Received Websocket Text: {messageString}");
             AdruinoMessage message = null;
             try
             {
@@ -67,7 +68,14 @@ namespace Barforce_Backend.WebSockets
                         }
                         break;
                     case "finished":
-                        _finishOrderRepository.FinishOrder(lastOrderId, lastCommand);
+                        try
+                        {
+                            _finishOrderRepository.FinishOrder(lastOrderId, lastCommand);
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogError($"FinishOrder failed after Arduino finished Drink (lastOrderId: {lastOrderId}, lastCommand: {lastCommand})");
+                        }
                         connections.TryGetValue(socketId, out int machineId);
                         MachineQueue queue1 = machineMessages.Find(x => x.DBId == machineId);
                         if (queue1 != null)
