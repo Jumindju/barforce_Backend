@@ -13,8 +13,6 @@ namespace Barforce_Backend.WebSockets
 {
     public class MachineHandler : WebSocketHandler
     {
-        int lastOrderId;
-        List<DrinkCommand> lastCommand = new List<DrinkCommand>();
         List<MachineQueue> machineMessages = new List<MachineQueue>();
         Dictionary<string, int> connections = new Dictionary<string, int>();
         private readonly ILogger _logger;
@@ -27,6 +25,13 @@ namespace Barforce_Backend.WebSockets
         }
         public override async Task ReceiveAsync(WebSocket socket, WebSocketReceiveResult result, byte[] buffer)
         {
+            _logger.LogInformation($"-------------------------------------------------------");
+            _logger.LogInformation($"Websocketiddleware, MachineMessages: {JsonConvert.SerializeObject(machineMessages)}");
+            _logger.LogInformation($"-------------------------------------------------------");
+            _logger.LogInformation($"Websocketiddleware, Connections: {JsonConvert.SerializeObject(connections)}");
+            _logger.LogInformation($"-------------------------------------------------------");
+
+
             string messageString = Encoding.UTF8.GetString(buffer, 0, result.Count);
             _logger.LogInformation($"Websocketiddleware, Received Websocket Text: {messageString}");
             AdruinoMessage message = null;
@@ -59,32 +64,33 @@ namespace Barforce_Backend.WebSockets
                         MachineQueue queue = machineMessages.Find(x => x.DBId == dbId);
                         if (queue == null)
                         {
-                            machineMessages.Add(new MachineQueue() { DBId = dbId, Messages = new Queue<string>() });
+                            machineMessages.Add(new MachineQueue() { DBId = dbId, Orders = new Queue<Order>() });
                         }
-                        else if (queue.Messages.Count > 0)
+                        else if (queue.Orders.Count > 0)
                         {
-                            string msg = queue.Messages.First();
-                            await SendMessageAsync(socketId, msg);
+                            Order order = queue.Orders.First();
+                            await SendMessageAsync(socketId, order.Message);
                         }
                         break;
-                    case "finished":
-                        try
-                        {
-                            _finishOrderRepository.FinishOrder(lastOrderId, lastCommand);
-                        }
-                        catch (Exception ex)
-                        {
-                            _logger.LogError($"FinishOrder failed after Arduino finished Drink (lastOrderId: {lastOrderId}, lastCommand: {lastCommand})");
-                        }
+                    case "finished": 
                         connections.TryGetValue(socketId, out int machineId);
                         MachineQueue queue1 = machineMessages.Find(x => x.DBId == machineId);
-                        if (queue1 != null)
+                        if (queue1 != null && queue1.Orders.Count > 0)
                         {
-                            queue1.Messages.Dequeue();
-                            if (queue1.Messages.Count > 0)
+                            Order order = queue1.Orders.First();
+                            try
                             {
-                                string msg = queue1.Messages.First();
-                                await SendMessageAsync(socketId, msg);
+                                _finishOrderRepository.FinishOrder(order.OrderId, order.MessageObject);
+                            }
+                            catch (Exception ex)
+                            {
+                                _logger.LogError($"FinishOrder failed after Arduino finished Drink (lastOrderId: {order.OrderId}, lastCommand: {order.MessageObject})");
+                            }
+                            queue1.Orders.Dequeue();
+                            if (queue1.Orders.Count > 0)
+                            {
+                                Order newOrder = queue1.Orders.First();
+                                await SendMessageAsync(socketId, newOrder.Message);
                             }
                         }
                         break;
@@ -101,14 +107,12 @@ namespace Barforce_Backend.WebSockets
                 if (socketId != null)
                 {
                     MachineQueue queue = machineMessages.Find(x => x.DBId == machineId);
-                    queue.Messages.Enqueue(message);
-                    if (queue.Messages.Count == 1)
+                    queue.Orders.Enqueue(new Order(orderId,message,_message));
+                    if (queue.Orders.Count == 1)
                     {
                         await SendMessageAsync(socketId, message);
-                        lastCommand = _message;
-                        lastOrderId = orderId;
                     }
-                    return queue.Messages.Count - 1; // Position in Warteschlange
+                    return queue.Orders.Count - 1; // Position in Warteschlange
                 }
                 else
                 {

@@ -44,13 +44,6 @@ namespace Barforce_Backend.WebSockets
                     await _machineHandler.OnDisconnected(socket);
                     return;
                 }
-
-                else
-                {
-                    await _machineHandler.OnDisconnected(socket);
-                    return;
-                }
-
             });
             await _next(context).ConfigureAwait(true);
         }
