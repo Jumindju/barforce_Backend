@@ -22,12 +22,14 @@ namespace Barforce_Backend.Repository
         {
             const string setServeTimeCmd = @"
                 UPDATE ""order"" 
-                SET servetime=:serveTime 
+                SET 
+                    servetime= CASE WHEN :aborted=0 THEN current_timestamp END
+                    ,canceltime=CASE WHEN :aborted=1 THEN current_timestamp END
                 WHERE id=:id";
             var serveParameter = new DynamicParameters(new
             {
                 id = orderId,
-                serveTime = DateTime.UtcNow
+                aborted
             });
             try
             {
