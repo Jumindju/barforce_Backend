@@ -43,7 +43,8 @@ namespace Barforce_Backend.Repository
                                 FROM ""order""
                                             JOIN vidrink d on drinkid = d.id
                                 WHERE
-                                    userId=:userId
+                                    userId=:userId AND
+                                    serveTime IS NOT NULL
                                 ORDER BY
                                     orderdate desc
                                 OFFSET :skip LIMIT :take";
