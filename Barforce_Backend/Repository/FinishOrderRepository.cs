@@ -18,7 +18,7 @@ namespace Barforce_Backend.Repository
         {
             _dbHelper = dbHelper;
         }
-        public async Task FinishOrder(int orderId, List<DrinkCommand> drinks)
+        public async Task FinishOrder(int orderId, List<DrinkCommand> drinks, bool aborted = false)
         {
             const string setServeTimeCmd = @"
                 UPDATE ""order"" 

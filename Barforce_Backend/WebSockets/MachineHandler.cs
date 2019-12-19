@@ -18,20 +18,13 @@ namespace Barforce_Backend.WebSockets
         private readonly ILogger _logger;
         private readonly IFinishOrderRepository _finishOrderRepository;
 
-        public MachineHandler(WebSocketConnectionManager webSocketConnectionManager, ILoggerFactory loggerFactory,  IFinishOrderRepository finishOrderRepository) : base(webSocketConnectionManager)
+        public MachineHandler(WebSocketConnectionManager webSocketConnectionManager, ILoggerFactory loggerFactory, IFinishOrderRepository finishOrderRepository) : base(webSocketConnectionManager)
         {
             _logger = loggerFactory.CreateLogger<MachineHandler>();
             _finishOrderRepository = finishOrderRepository;
         }
         public override async Task ReceiveAsync(WebSocket socket, WebSocketReceiveResult result, byte[] buffer)
         {
-            _logger.LogInformation($"-------------------------------------------------------");
-            _logger.LogInformation($"Websocketiddleware, MachineMessages: {JsonConvert.SerializeObject(machineMessages)}");
-            _logger.LogInformation($"-------------------------------------------------------");
-            _logger.LogInformation($"Websocketiddleware, Connections: {JsonConvert.SerializeObject(connections)}");
-            _logger.LogInformation($"-------------------------------------------------------");
-
-
             string messageString = Encoding.UTF8.GetString(buffer, 0, result.Count);
             _logger.LogInformation($"Websocketiddleware, Received Websocket Text: {messageString}");
             AdruinoMessage message = null;
@@ -74,7 +67,8 @@ namespace Barforce_Backend.WebSockets
                             await SendMessageAsync(socketId, order.Message);
                         }
                         break;
-                    case "finished": 
+                    case "finished":
+                    case "aborted":
                         connections.TryGetValue(socketId, out int machineId);
                         MachineQueue queue1 = machineMessages.Find(x => x.DBId == machineId);
                         if (queue1 != null && queue1.Orders.Count > 0)
@@ -82,11 +76,11 @@ namespace Barforce_Backend.WebSockets
                             Order order = queue1.Orders.First();
                             try
                             {
-                                _finishOrderRepository.FinishOrder(order.OrderId, order.MessageObject);
+                                _finishOrderRepository.FinishOrder(order.OrderId, order.MessageObject, message.Action == "aborted");
                             }
                             catch (Exception ex)
                             {
-                                _logger.LogError($"FinishOrder failed after Arduino finished Drink (lastOrderId: {order.OrderId}, lastCommand: {order.MessageObject})");
+                                _logger.LogError($"FinishOrder failed after Arduino finished Drink (lastOrderId: {order.OrderId}, lastCommand: {order.MessageObject}, aborted: {message.Action == "aborted"})");
                             }
                             queue1.Orders.Dequeue();
                             if (queue1.Orders.Count > 0)
@@ -100,16 +94,16 @@ namespace Barforce_Backend.WebSockets
                 }
             }
         }
-        public override async Task<int> SendMessageToMachine(int machineId, int orderId, List<DrinkCommand> _message)
+        public override async Task<int> SendMessageToMachine(int machineId, string userName, int orderId, List<DrinkCommand> _message)
         {
-            string message = JsonConvert.SerializeObject(_message);
+            string message = JsonConvert.SerializeObject(new UserDrink(userName,_message));
             if (!string.IsNullOrEmpty(message))
             {
                 string socketId = connections.FirstOrDefault(x => x.Value == machineId).Key;
                 if (socketId != null)
                 {
                     MachineQueue queue = machineMessages.Find(x => x.DBId == machineId);
-                    queue.Orders.Enqueue(new Order(orderId,message,_message));
+                    queue.Orders.Enqueue(new Order(orderId, userName, message, _message));
                     if (queue.Orders.Count == 1)
                     {
                         await SendMessageAsync(socketId, message);

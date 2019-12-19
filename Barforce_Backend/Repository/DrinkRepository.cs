@@ -11,6 +11,7 @@ using Barforce_Backend.Model.Drink.Favourite;
 using Barforce_Backend.Model.Drink.Overview;
 using Barforce_Backend.Model.Helper.Middleware;
 using Barforce_Backend.Model.Ingredient;
+using Barforce_Backend.Model.User;
 using Barforce_Backend.Model.Websocket;
 using Barforce_Backend.WebSockets;
 using Dapper;
@@ -22,12 +23,14 @@ namespace Barforce_Backend.Repository
         private readonly IDbHelper _dbHelper;
         private readonly IContainerRepo _containerRepo;
         private readonly MachineHandler _machineHandler;
+        private readonly IUserRepository _userRepo;
 
-        public DrinkRepository(IDbHelper dbHelper, IContainerRepo containerRepo, MachineHandler machineHandler)
+        public DrinkRepository(IDbHelper dbHelper, IContainerRepo containerRepo, MachineHandler machineHandler, IUserRepository userRepo)
         {
             _dbHelper = dbHelper;
             _containerRepo = containerRepo;
             _machineHandler = machineHandler;
+            _userRepo = userRepo;
         }
 
         public async Task<List<OverviewDrink>> ReadUsersHistory(int userId, int take, int skip)
@@ -112,8 +115,8 @@ namespace Barforce_Backend.Repository
             {
                 throw new HttpStatusCodeException(HttpStatusCode.InternalServerError, "Could not create drink", e);
             }
-
-            return await _machineHandler.SendMessageToMachine(machineId, orderId, drinkCmd);
+            UserDto user = await _userRepo.ReadUserById(userId);
+            return await _machineHandler.SendMessageToMachine(machineId, user.Username, orderId, drinkCmd);
         }
 
         public async Task<int> AddFavourite(int userId, NewFavouriteDrink newNewFavourite)

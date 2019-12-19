@@ -9,6 +9,6 @@ namespace Barforce_Backend.Interface.Repositories
 {
     public interface IFinishOrderRepository
     {
-        Task FinishOrder(int orderId, List<DrinkCommand> drinks);
+        Task FinishOrder(int orderId, List<DrinkCommand> drinks, bool aborted = false);
     }
 }
