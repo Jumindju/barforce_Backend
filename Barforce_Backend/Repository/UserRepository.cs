@@ -250,7 +250,7 @@ namespace Barforce_Backend.Repository
             }
         }
 
-        private async Task<UserDto> ReadUserById(int userId)
+        public async Task<UserDto> ReadUserById(int userId)
         {
             const string cmd =
                 "SELECT userid,username,email,birthday,weight,groups,gender,verified,currentToken,password, salt from viuser where userid=:userId";
