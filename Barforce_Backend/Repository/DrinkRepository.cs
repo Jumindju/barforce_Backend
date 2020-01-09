@@ -25,7 +25,8 @@ namespace Barforce_Backend.Repository
         private readonly MachineHandler _machineHandler;
         private readonly IUserRepository _userRepo;
 
-        public DrinkRepository(IDbHelper dbHelper, IContainerRepo containerRepo, MachineHandler machineHandler, IUserRepository userRepo)
+        public DrinkRepository(IDbHelper dbHelper, IContainerRepo containerRepo, MachineHandler machineHandler,
+            IUserRepository userRepo)
         {
             _dbHelper = dbHelper;
             _containerRepo = containerRepo;
@@ -86,9 +87,9 @@ namespace Barforce_Backend.Repository
 
         public async Task<int> CreateOrder(int userId, int machineId, CreateDrink newDrink)
         {
-            (int drinkId, int glassSize) = await GetDrink(newDrink);
+            var (drinkId, glassSize) = await GetDrink(newDrink);
 
-            var drinkCmd = await CheckContainer(machineId, newDrink);
+            var drinkCmd = await CheckContainer(machineId, glassSize, newDrink);
             await _containerRepo.IngredientsInContainer(machineId, glassSize, newDrink.Ingredients);
 
             const string createOrderCmd = @"INSERT INTO ""order""
@@ -116,7 +117,8 @@ namespace Barforce_Backend.Repository
             {
                 throw new HttpStatusCodeException(HttpStatusCode.InternalServerError, "Could not create drink", e);
             }
-            UserDto user = await _userRepo.ReadUserById(userId);
+
+            var user = await _userRepo.ReadUserById(userId);
             return await _machineHandler.SendMessageToMachine(machineId, user.Username, orderId, drinkCmd);
         }
 
@@ -286,7 +288,7 @@ namespace Barforce_Backend.Repository
                 : (await CreateDrink(newDrink), glassSize.Value);
         }
 
-        private async Task<List<DrinkCommand>> CheckContainer(int machineId, CreateDrink newDrink)
+        private async Task<List<DrinkCommand>> CheckContainer(int machineId, int glassSize, CreateDrink newDrink)
         {
             // Check if liquid is in containers
             var currentContainersRaw = await _containerRepo.ReadAll(machineId);
@@ -301,7 +303,7 @@ namespace Barforce_Backend.Repository
                 drinkCommand.Add(new DrinkCommand
                 {
                     Id = containerOfIngredient.Id,
-                    AmmountMl = ingredient.IngredientId
+                    AmmountMl = (int) ingredient.Amount * glassSize
                 });
             }
 

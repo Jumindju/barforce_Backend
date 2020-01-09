@@ -2,6 +2,9 @@
 #include <SPI.h>
 #include <WiFi.h>
 #include <ArduinoJson.h>
+#include <Wire.h>
+#include "SSD1306.h"
+
 using namespace net;
 
 int machineDBId = 1;
@@ -12,7 +15,10 @@ int outputPins[4] = {
   18,   // 3
   19    // 4
 };
-int btnInputPin = 15;
+int OkBtnInputPin = 15;
+int AbortBtnInputPin = 2;
+
+SSD1306 display(0x3c, 21, 22); 
 
 const char* ssid = "chayns®"; // fe_ge_ahaus // FRITZ!Box 6490 Cable";
 const char* password = ""; // 84688415471223421 // 25740003065298191354
@@ -28,7 +34,13 @@ void setup() {
   for(int i=0; i<4;i++){
     pinMode(outputPins[i], OUTPUT);
   }
-  pinMode(btnInputPin, INPUT);
+  pinMode(OkBtnInputPin, INPUT);
+  pinMode(AbortBtnInputPin, INPUT);
+
+  display.init();
+  display.flipScreenVertically();
+  displayWait();
+  display.display();
 
   Serial.print("Connecting to ");
   Serial.println(ssid);
@@ -56,17 +68,33 @@ void setup() {
     client.open(WebSocketServerUrl, WebSocketServerPort, WebSocketServerPath);
   });
   client.onMessage([](WebSocket & ws, WebSocketDataType dataType, const char *message, uint16_t length) {
-  Serial.print("Message recieved: ");
-    Serial.println(message);
-
-    while(digitalRead(btnInputPin) != HIGH);
-    // erst wenn Button gedrückt ist
-    StaticJsonDocument<JSON_ARRAY_SIZE(4)> arrayDoc;
-    deserializeJson(arrayDoc, message);
-    serializeJsonPretty(arrayDoc, Serial);
-    JsonArray array = arrayDoc.as<JsonArray>();
-    activatePins(array);    
-    char retMessage[] = "{Action:'finished'}";
+    StaticJsonDocument<JSON_OBJECT_SIZE(2) + JSON_ARRAY_SIZE(JSON_OBJECT_SIZE(4))> userDrinkDoc;
+    deserializeJson(userDrinkDoc, message);
+    //JsonObject userDrink = userDrinkDoc.as<JsonObject>();
+    JsonVariant userNameObj = userDrinkDoc["UserName"];
+    String userName = userNameObj.as<String>();
+    Serial.println();Serial.print("UserName: ");Serial.println(userName);
+    JsonArray drinkList = userDrinkDoc["DrinkList"];
+    displayName(userName);
+    int action = 0;
+    while(action == 0){
+      if(digitalRead(OkBtnInputPin) == HIGH){
+        action = 1; // Ok
+      }
+      if(digitalRead(AbortBtnInputPin) == HIGH){
+        action = 2; // Abbrechen
+      }
+    }
+    char* retMessage;
+    // erst wenn OK Button gedrückt ist
+    if(action == 1){
+      activatePins(drinkList); 
+      retMessage ="{Action:'finished'}";
+    }else if(action == 2){
+      retMessage = "{Action:'aborted'}";
+    }     
+    displayWait();
+    delay(1000);
     ws.send(TEXT, retMessage, (uint16_t)strlen(retMessage));
   });
   client.open(WebSocketServerUrl, WebSocketServerPort, WebSocketServerPath);
@@ -77,23 +105,81 @@ void loop() {
 }
 
 void activatePins(JsonArray array){
-  Serial.println("activatePins");
   for(String value : array) {
-    Serial.println("Object: " + value);
-    DynamicJsonDocument objDoc(1024);
+    StaticJsonDocument<JSON_OBJECT_SIZE(4)> objDoc;
     deserializeJson(objDoc, value);
-    JsonObject obj = objDoc.as<JsonObject>();
-    serializeJsonPretty(objDoc, Serial);
+    //JsonObject obj = objDoc.as<JsonObject>();
     JsonVariant ammountMlObj = objDoc["AmmountMl"];
     int ammountMl = ammountMlObj.as<int>();
     JsonVariant idObj = objDoc["Id"];
     int id = idObj.as<int>();
+        Serial.println();
+        Serial.print("AmmountML: ");
+        Serial.print(ammountMl);
+        Serial.print(", Id: ");
+        Serial.print(id);
+        Serial.println();
     if(ammountMl > 0){
-      digitalWrite(outputPins[id - 1], HIGH);
-      // Per Durchflusssensor Menge messen, bis Menge = obj[i].AmmountMl
-       delay(ammountMl*10);
-      //
-      digitalWrite(outputPins[id - 1], LOW);
+      int result = openValve(ammountMl,outputPins[id-1]);
+      if(result == -1){
+        break;
+      }
     }
   }
+}
+
+int openValve(int ammountMl, int pin){
+    digitalWrite(pin, HIGH);
+    // Per Durchflusssensor Menge messen, bis Menge = ammountMl
+    for(int i =0; i < ammountMl*10 ;i++){ // Abbrechen alle 10 ms scannen
+      if(digitalRead(AbortBtnInputPin) == HIGH){
+        break;
+      }
+      delay(10);
+    }
+    //
+    digitalWrite(pin, LOW);
+}
+void displayName(String name){
+  // Cut Name to DisplaySize
+  String points = "...";
+  uint16_t nameWidth = display.getStringWidth(name);
+  uint16_t pointsWidth = display.getStringWidth(points);
+  Serial.println();Serial.print("Namewidth: ");Serial.println(nameWidth);
+  if(nameWidth > 90){
+    while(nameWidth + pointsWidth > 90){
+      name = name.substring(0,name.length()-1);
+      nameWidth = display.getStringWidth(name);
+    }
+    name = name + points;
+  }
+  
+  display.clear();
+  
+  display.setFont(ArialMT_Plain_24);
+  display.drawString(0, 0,name);
+
+  //Abbrechen
+  display.setFont(ArialMT_Plain_16);
+  display.drawString(0, 47,"Abbrechen");
+  //Ok
+  display.setFont(ArialMT_Plain_16);
+  display.drawString(108, 47,"Ok");
+
+  display.display();
+}
+void displayWait(){
+  display.clear();
+  
+  display.setFont(ArialMT_Plain_24);
+  display.drawString(0, 0,"Warte ...");
+
+  //Abbrechen
+  display.setFont(ArialMT_Plain_16);
+  display.drawString(0, 47,"Abbrechen");
+  //Ok
+  display.setFont(ArialMT_Plain_16);
+  display.drawString(108, 47,"Ok");
+
+  display.display();
 }
