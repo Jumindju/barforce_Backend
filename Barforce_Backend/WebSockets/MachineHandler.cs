@@ -76,7 +76,7 @@ namespace Barforce_Backend.WebSockets
                             Order order = queue1.Orders.First();
                             try
                             {
-                                _finishOrderRepository.FinishOrder(order.OrderId, order.MessageObject, message.Action == "aborted");
+                               await _finishOrderRepository.FinishOrder(order.OrderId, order.MessageObject, message.Action == "aborted");
                             }
                             catch (Exception ex)
                             {
