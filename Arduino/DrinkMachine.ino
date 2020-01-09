@@ -39,7 +39,7 @@ void setup() {
 
   display.init();
   display.flipScreenVertically();
-  displayWait();
+  displayText("Warte ...", true);
   display.display();
 
   Serial.print("Connecting to ");
@@ -73,9 +73,8 @@ void setup() {
     //JsonObject userDrink = userDrinkDoc.as<JsonObject>();
     JsonVariant userNameObj = userDrinkDoc["UserName"];
     String userName = userNameObj.as<String>();
-    Serial.println();Serial.print("UserName: ");Serial.println(userName);
     JsonArray drinkList = userDrinkDoc["DrinkList"];
-    displayName(userName);
+    displayText(userName,true);
     int action = 0;
     while(action == 0){
       if(digitalRead(OkBtnInputPin) == HIGH){
@@ -88,23 +87,33 @@ void setup() {
     char* retMessage;
     // erst wenn OK Button gedrückt ist
     if(action == 1){
-      activatePins(drinkList); 
+      displayText("Wird zubereitet...", false);
+      action = activatePins(drinkList); 
       retMessage ="{Action:'finished'}";
-    }else if(action == 2){
+    }
+    if(action == 2){
       retMessage = "{Action:'aborted'}";
-    }     
-    displayWait();
-    delay(1000);
+      displayText("Abgebrochen.", false);
+      delay(1000);  
+    } 
+    displayText("Warte ...",true);
+    delay(1000);     
     ws.send(TEXT, retMessage, (uint16_t)strlen(retMessage));
+    
   });
   client.open(WebSocketServerUrl, WebSocketServerPort, WebSocketServerPath);
 }
 
 void loop() {
   client.listen();
+  if(!client.isAlive()){
+    delay(1000);
+    client.open(WebSocketServerUrl, WebSocketServerPort, WebSocketServerPath);
+    delay(1000);
+  }
 }
 
-void activatePins(JsonArray array){
+int activatePins(JsonArray array){
   for(String value : array) {
     StaticJsonDocument<JSON_OBJECT_SIZE(4)> objDoc;
     deserializeJson(objDoc, value);
@@ -120,59 +129,53 @@ void activatePins(JsonArray array){
         Serial.print(id);
         Serial.println();
     if(ammountMl > 0){
-      int result = openValve(ammountMl,outputPins[id-1]);
-      if(result == -1){
-        break;
+      bool result = openValve(ammountMl,outputPins[id-1]);
+      if(!result){
+        return 2;
       }
     }
   }
+  return 1;
 }
 
-int openValve(int ammountMl, int pin){
+bool openValve(int ammountMl, int pin){
     digitalWrite(pin, HIGH);
     // Per Durchflusssensor Menge messen, bis Menge = ammountMl
-    for(int i =0; i < ammountMl*10 ;i++){ // Abbrechen alle 10 ms scannen
+    for(int i =0; i < ammountMl*8 ;i++){ // Abbrechen alle 10 ms scannen
       if(digitalRead(AbortBtnInputPin) == HIGH){
-        break;
+        digitalWrite(pin, LOW);
+        return false;
       }
       delay(10);
     }
     //
     digitalWrite(pin, LOW);
+    return true;
 }
-void displayName(String name){
-  // Cut Name to DisplaySize
-  String points = "...";
-  uint16_t nameWidth = display.getStringWidth(name);
-  uint16_t pointsWidth = display.getStringWidth(points);
-  Serial.println();Serial.print("Namewidth: ");Serial.println(nameWidth);
-  if(nameWidth > 90){
-    while(nameWidth + pointsWidth > 90){
-      name = name.substring(0,name.length()-1);
-      nameWidth = display.getStringWidth(name);
+void displayText(String text, bool bigSize){
+  if(bigSize){
+    // Cut Name to DisplaySize
+    String points = "...";
+    uint16_t nameWidth = display.getStringWidth(text);
+    uint16_t pointsWidth = display.getStringWidth(points);
+    if(nameWidth > 87){
+      while(nameWidth + pointsWidth > 87){
+        text = text.substring(0,text.length()-1);
+        nameWidth = display.getStringWidth(text);
+      }
+      text = text + points;
     }
-    name = name + points;
   }
   
   display.clear();
+  if(bigSize){
+    display.setFont(ArialMT_Plain_24);
+    display.drawString(0, 0,text);
+  }else{
+    display.setFont(ArialMT_Plain_16);
+    display.drawString(0, 1,text);
+  }
   
-  display.setFont(ArialMT_Plain_24);
-  display.drawString(0, 0,name);
-
-  //Abbrechen
-  display.setFont(ArialMT_Plain_16);
-  display.drawString(0, 47,"Abbrechen");
-  //Ok
-  display.setFont(ArialMT_Plain_16);
-  display.drawString(108, 47,"Ok");
-
-  display.display();
-}
-void displayWait(){
-  display.clear();
-  
-  display.setFont(ArialMT_Plain_24);
-  display.drawString(0, 0,"Warte ...");
 
   //Abbrechen
   display.setFont(ArialMT_Plain_16);
