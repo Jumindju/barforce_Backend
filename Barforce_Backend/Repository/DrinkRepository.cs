@@ -34,47 +34,6 @@ namespace Barforce_Backend.Repository
             _userRepo = userRepo;
         }
 
-        public async Task<List<OverviewDrink>> ReadUsersHistory(int userId, int take, int skip)
-        {
-            List<OverviewDrink> drinkHistory;
-            const string cmd = @"SELECT drinkid,
-                                       orderdate,
-                                       servetime,
-                                       size as glassSize
-                                FROM ""order""
-                                            JOIN vidrink d on drinkid = d.id
-                                WHERE
-                                    userId=:userId AND
-                                    serveTime IS NOT NULL
-                                ORDER BY
-                                    orderdate desc
-                                OFFSET :skip LIMIT :take";
-            var parameter = new DynamicParameters(new
-            {
-                userId,
-                skip,
-                take
-            });
-            try
-            {
-                using var con = await _dbHelper.GetConnection();
-                var drinkHistoryRaw = await con.QueryAsync<OverviewDrink>(cmd, parameter);
-                drinkHistory = drinkHistoryRaw.ToList();
-            }
-            catch (Exception e)
-            {
-                throw new HttpStatusCodeException(HttpStatusCode.InternalServerError,
-                    "Error while reading users order history", e);
-            }
-
-            foreach (var drink in drinkHistory)
-            {
-                drink.Ingredients = await GetIngredientsOfDrink(drink.DrinkId);
-            }
-
-            return drinkHistory;
-        }
-
         public async Task<IEnumerable<GlassSize>> ReadGlassSizes()
         {
             const string cmd = @"SELECT
@@ -122,78 +81,7 @@ namespace Barforce_Backend.Repository
             return await _machineHandler.SendMessageToMachine(machineId, user.Username, orderId, drinkCmd);
         }
 
-        public async Task<int> AddFavourite(int userId, NewFavouriteDrink newNewFavourite)
-        {
-            if (string.IsNullOrEmpty(newNewFavourite?.Name))
-                throw new HttpStatusCodeException(HttpStatusCode.BadRequest, "No favourite name");
-            var (drinkId, _) = await GetDrink(newNewFavourite);
-            if (await FavoriteDrinkExists(userId, drinkId))
-                throw new HttpStatusCodeException(HttpStatusCode.NotModified, "Drink is already users favorite");
-            const string cmd = @"INSERT INTO favouritedrink
-                                (
-                                    userid, drinkid, ""name""                                
-                                )
-                                VALUES(
-                                       :userId,
-                                       :drinkId,
-                                       :drinkName
-                                )";
-            var parameter = new DynamicParameters(new
-            {
-                userId,
-                drinkId,
-                drinkName = newNewFavourite.Name
-            });
-            try
-            {
-                using var con = await _dbHelper.GetConnection();
-                await con.ExecuteAsync(cmd, parameter);
-            }
-            catch (Exception e)
-            {
-                throw new HttpStatusCodeException(HttpStatusCode.InternalServerError, "Error while adding favourite",
-                    e);
-            }
-
-            return drinkId;
-        }
-
-        public async Task<List<FavouriteDrink>> GetFavouriteDrinks(int userId)
-        {
-            const string getDrinksCmd = @"SELECT 
-                                                userid,
-                                                drinkid,
-                                                glasssize,
-                                                glasssizeid,
-                                                ""name""
-                                            from vifavouritedrink
-                                            where userid=:userid";
-            var getDrinksParameter = new DynamicParameters(new
-            {
-                userId
-            });
-            List<FavouriteDrink> favouriteDrinks;
-            try
-            {
-                using var con = await _dbHelper.GetConnection();
-                var favDrinksRaw = await con.QueryAsync<FavouriteDrink>(getDrinksCmd, getDrinksParameter);
-                favouriteDrinks = favDrinksRaw.ToList();
-            }
-            catch (Exception e)
-            {
-                throw new HttpStatusCodeException(HttpStatusCode.InternalServerError,
-                    "Error while getting favourite drinks", e);
-            }
-
-            foreach (var favouriteDrink in favouriteDrinks)
-            {
-                favouriteDrink.Ingredients = await GetIngredientsOfDrink(favouriteDrink.DrinkId);
-            }
-
-            return favouriteDrinks;
-        }
-
-        private async Task<List<DrinkIngredient>> GetIngredientsOfDrink(int drinkId)
+        public async Task<List<DrinkIngredient>> GetIngredientsOfDrink(int drinkId)
         {
             const string favDrinkIngredientsCmd = @"SELECT 
                                                            id   as ingredientId,
@@ -221,51 +109,7 @@ namespace Barforce_Backend.Repository
             }
         }
 
-        public async Task RemoveFavouriteDrink(int userId, int drinkId)
-        {
-            if (!await FavoriteDrinkExists(userId, drinkId))
-                throw new HttpStatusCodeException(HttpStatusCode.BadRequest, "Favorite drink doesnt exists");
-            const string cmd =
-                "UPDATE favouriteDrink SET deletetime=current_timestamp WHERE drinkid=:drinkId AND userid=:userId";
-            var parameter = new DynamicParameters(new
-            {
-                drinkId,
-                userId
-            });
-            try
-            {
-                using var con = await _dbHelper.GetConnection();
-                await con.ExecuteAsync(cmd, parameter);
-            }
-            catch (Exception e)
-            {
-                throw new HttpStatusCodeException(HttpStatusCode.InternalServerError,
-                    "Error while removing favorite drink", e);
-            }
-        }
-
-        private async Task<bool> FavoriteDrinkExists(int userId, int drinkId)
-        {
-            const string cmd = @"SELECT drinkId FROM vifavouritedrink WHERE drinkId=:drinkId AND userId=:userId";
-            var parameter = new DynamicParameters(new
-            {
-                userId,
-                drinkId
-            });
-            try
-            {
-                using var con = await _dbHelper.GetConnection();
-                var drinkExists = await con.ExecuteScalarAsync<int?>(cmd, parameter);
-                return drinkExists != null;
-            }
-            catch (Exception e)
-            {
-                throw new HttpStatusCodeException(HttpStatusCode.InternalServerError,
-                    "Error while checking if favorite drink exists", e);
-            }
-        }
-
-        private async Task<(int drinkId, int glassSize)> GetDrink(CreateDrink newDrink)
+        public async Task<(int drinkId, int glassSize)> GetDrink(CreateDrink newDrink)
         {
             // Validate Input
             if (newDrink == null)

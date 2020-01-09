@@ -14,7 +14,13 @@ namespace Barforce_Backend.Controllers
     public class DrinkController : Controller
     {
         private readonly IDrinkRepository _drinkRepository;
+        private readonly IHistoryRepository _historyRepository;
 
+        public DrinkController(IDrinkRepository drinkRepository, IHistoryRepository historyRepository)
+        {
+            _drinkRepository = drinkRepository;
+            _historyRepository = historyRepository;
+        }
         public DrinkController(IDrinkRepository drinkRepository)
         {
             _drinkRepository = drinkRepository;
@@ -30,7 +36,7 @@ namespace Barforce_Backend.Controllers
         public async Task<IActionResult> ReadHistory([FromQuery] int? take, [FromQuery] int? skip)
         {
             var user = HttpContext.GetTokenUser();
-            var history = await _drinkRepository.ReadUsersHistory(user.UserId, take ?? 10, skip ?? 0);
+            var history = await _historyRepository.ReadUsersHistory(user.UserId, take ?? 10, skip ?? 0);
             if (history.Any())
                 return Ok(history);
             return NoContent();

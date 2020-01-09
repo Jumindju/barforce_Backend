@@ -10,6 +10,6 @@ namespace Barforce_Backend.Model.User
         public DateTime Birthday { get; set; }
         public int? Weight { get; set; }
         public UserGroups Groups { get; set; }
-        public bool Gender { get; set; }
+        public Gender Gender { get; set; }
     }
 }
