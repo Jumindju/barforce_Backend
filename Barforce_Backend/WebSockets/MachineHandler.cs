@@ -81,7 +81,7 @@ namespace Barforce_Backend.WebSockets
                             }
                             catch (Exception ex)
                             {
-                                _logger.LogError($"FinishOrder failed after Arduino finished Drink (lastOrderId: {order.OrderId}, lastCommand: {order.MessageObject}, aborted: {message.Action == "aborted"})");
+                                _logger.LogError(ex,$"FinishOrder failed after Arduino finished Drink (lastOrderId: {order.OrderId}, lastCommand: {order.MessageObject}, aborted: {message.Action == "aborted"})");
                             }
                             queue1.Orders.Dequeue();
                             if (queue1.Orders.Count > 0)
