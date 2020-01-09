@@ -14,18 +14,18 @@ namespace Barforce_Backend.Controllers
     [Route("api/favourite")]
     public class FavouriteController : Controller
     {
-        private readonly IDrinkRepository _drinkRepository;
+        private readonly IFavoriteRepository _favoriteRepository;
 
-        public FavouriteController(IDrinkRepository drinkRepository)
+        public FavouriteController(IFavoriteRepository favoriteRepository)
         {
-            _drinkRepository = drinkRepository;
+            _favoriteRepository = favoriteRepository;
         }
 
         [HttpGet]
         public async Task<IActionResult> GetFavourites()
         {
             var user = HttpContext.GetTokenUser();
-            var favouriteDrinks = await _drinkRepository.GetFavouriteDrinks(user.UserId);
+            var favouriteDrinks = await _favoriteRepository.GetFavouriteDrinks(user.UserId);
             if (favouriteDrinks.Any())
                 return Ok(favouriteDrinks);
             return NoContent();
@@ -37,7 +37,7 @@ namespace Barforce_Backend.Controllers
             var user = HttpContext.GetTokenUser();
             return StatusCode(201, new
             {
-                drinkId = await _drinkRepository.AddFavourite(user.UserId, newNewFavourite)
+                drinkId = await _favoriteRepository.AddFavourite(user.UserId, newNewFavourite)
             });
         }
 
@@ -45,7 +45,7 @@ namespace Barforce_Backend.Controllers
         public async Task<IActionResult> RemoveFavorite([FromRoute]int drinkId)
         {
             var user = HttpContext.GetTokenUser();
-            await _drinkRepository.RemoveFavouriteDrink(user.UserId, drinkId);
+            await _favoriteRepository.RemoveFavouriteDrink(user.UserId, drinkId);
             return Ok();
         }
     }

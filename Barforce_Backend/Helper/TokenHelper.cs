@@ -74,7 +74,7 @@ namespace Barforce_Backend.Helper
                 new Claim("eMail", user.Email),
                 new Claim("birthDay", user.Birthday.ToShortDateString()),
                 new Claim("weight", user.Weight?.ToString() ?? ""),
-                new Claim("gender", user.Gender ? "1" : "0`"),
+                new Claim("gender", user.Gender == Gender.Male ? "1" : "0`"),
             };
         }
     }

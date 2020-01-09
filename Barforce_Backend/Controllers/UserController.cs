@@ -16,10 +16,12 @@ namespace Barforce_Backend.Controllers
     public class UserController : Controller
     {
         private readonly IUserRepository _userRepository;
+        private readonly IHistoryRepository _historyRepository;
 
-        public UserController(IUserRepository userRepository)
+        public UserController(IUserRepository userRepository, IHistoryRepository historyRepository)
         {
             _userRepository = userRepository;
+            _historyRepository = historyRepository;
         }
 
         [HttpGet("userName")]
@@ -98,6 +100,17 @@ namespace Barforce_Backend.Controllers
                     Message = e.Message
                 });
             }
+        }
+
+        [Authorize]
+        [HttpGet("AlcoholLevel")]
+        public async Task<IActionResult> GetCurrentAlcoholLevel()
+        {
+            var user = HttpContext.GetTokenUser();
+            return Ok(new
+            {
+                AlcoholLevel = await _historyRepository.GetUsersAlcoholStatus(user.UserId)
+            });
         }
 
         [HttpPost("register")]
