@@ -21,10 +21,6 @@ namespace Barforce_Backend.Controllers
             _drinkRepository = drinkRepository;
             _historyRepository = historyRepository;
         }
-        public DrinkController(IDrinkRepository drinkRepository)
-        {
-            _drinkRepository = drinkRepository;
-        }
 
         [HttpGet("glasses")]
         public async Task<IActionResult> ReadGlassSizes()
