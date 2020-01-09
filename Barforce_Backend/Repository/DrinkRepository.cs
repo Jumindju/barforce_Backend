@@ -303,7 +303,7 @@ namespace Barforce_Backend.Repository
                 drinkCommand.Add(new DrinkCommand
                 {
                     Id = containerOfIngredient.Id,
-                    AmmountMl = (int) ingredient.Amount * glassSize
+                    AmmountMl = (int) ((ingredient.Amount * glassSize) / 100)
                 });
             }
 
