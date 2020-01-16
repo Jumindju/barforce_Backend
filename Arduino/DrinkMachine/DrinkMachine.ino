@@ -20,8 +20,8 @@ int AbortBtnInputPin = 2;
 
 SSD1306 display(0x3c, 21, 22); 
 
-const char* ssid = "chayns®"; // fe_ge_ahaus // FRITZ!Box 6490 Cable";
-const char* password = ""; // 84688415471223421 // 25740003065298191354
+const char* ssid = "chayns®"; // fe_ge_ahaus
+const char* password = ""; // 84688415471223421
 
 WebSocketClient client;
 

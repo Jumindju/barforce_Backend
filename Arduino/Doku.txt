@@ -3,7 +3,7 @@ Barforce Arduino-Maschiene mit ESP32
 Um den ESP debuggen zu können muss man als erstes die esp32 treiber installeren.
 Um dann Skethes hochzuladen und zu debuggen muss man sich die Arduino IDE Herunterladen
 
-..........
+https://www.arduino.cc/en/main/software
 
 und das Board passend einstellen. 
 Dazu muss man under Datei->Voreinstellungen->Einstellungen->Zusätzliche Boardverwalter
@@ -12,3 +12,14 @@ diese Links hereinkopieren
 https://dl.espressif.com/dl/package_esp32_index.json, http://arduino.esp8266.com/stable/package_esp8266com_index.json
 
 und unter Werkzeuge->Board "ESP32 DEV Module" als Baord einstellen.
+
+Um den ESP32 zu debuggen muss man die USB-Treiber in diesem Repo istallieren.
+
+
+Um das Programm dann zu starten muss man die Datei "DrinkMachine.ino" im Ordner DrinkMachine
+öffnen und die MachineId, evtl. die Pins und die WLan-Verbindungsdaten anpassen.
+
+Zudem muss man die Dateien aus dem Ordner libaries (im Repo) in den Arduino Libaries Ordner kopieren.
+(C:\Users\{User}\Documents\Arduino\libraries)
+
+Dann kann man den Sketch hochladen.
