@@ -141,7 +141,7 @@ int activatePins(JsonArray array){
 bool openValve(int ammountMl, int pin){
     digitalWrite(pin, HIGH);
     // Per Durchflusssensor Menge messen, bis Menge = ammountMl
-    for(int i =0; i < ammountMl*8 ;i++){ // Abbrechen alle 10 ms scannen
+    for(int i =0; i < ammountMl*5 ;i++){ // Abbrechen alle 10 ms scannen
       if(digitalRead(AbortBtnInputPin) == HIGH){
         digitalWrite(pin, LOW);
         return false;
